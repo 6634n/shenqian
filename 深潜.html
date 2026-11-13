@@ -1,0 +1,2505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#f4f1e8">
+<title>深潜 · 文字地下城</title>
+<script>
+window.onerror = function(msg, url, line) {
+  const stage = document.getElementById('stage');
+  if (stage) {
+    stage.innerHTML = `<div style="color:#8a4436;padding:20px;font-size:18px;line-height:1.6;">
+      <b>运行出错：</b><br>${msg}<br><br>错误行号: ${line}<br>
+      <p style="margin-top:20px;color:#8b8270;">请截图此信息反馈。</p>
+    </div>`;
+  }
+  return true;
+};
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:24px;line-height:1.6;color:#3b352b;background:#e6e0d1;
+  overscroll-behavior:none;
+}
+#app{
+  position:relative;display:flex;flex-direction:column;
+  width:100%;max-width:600px;height:100vh;height:100dvh;
+  margin:0 auto;background:#faf7ef;
+  box-shadow:0 0 30px rgba(70,60,40,.10);
+}
+#statusbar{
+  flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;
+  padding:12px 16px;background:#f1ecdd;border-bottom:1px solid #ddd5c0;
+  font-size:16px;color:#5d5544;min-height:48px;
+}
+.chip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+.chip b{font-weight:600;color:#3b352b;}
+.hpbar{width:60px;height:8px;background:#dcd4be;border-radius:4px;overflow:hidden;display:inline-block;vertical-align:middle;}
+.hpbar i{display:block;height:100%;background:#7a9a6a;transition:width .25s;}
+.darkmode .hpbar i{background:#a0503c;}
+#stage{
+  flex:1 1 auto;overflow-y:auto;overflow-x:hidden;
+  padding:20px 20px 30px;-webkit-overflow-scrolling:touch;
+}
+#narrative p{margin:0 0 16px;word-break:break-all;}
+#narrative .sys{color:#8b8270;font-size:18px;line-height:1.5;}
+#narrative .em{color:#8a4436;}
+#narrative .good{color:#4f7a4a;}
+.dicebar{
+  margin:0 0 20px;padding:12px 16px;
+  background:#eef3e8;border:1px solid #c6d6bc;border-radius:12px;
+  font-size:18px;line-height:1.5;text-align:center;color:#3f5a36;
+  animation:fadein .18s ease;
+}
+.dicebar.bad{background:#f8ece8;border-color:#e2c6ba;color:#8a4436;}
+.dicebar .big{display:block;font-size:22px;font-weight:600;margin-bottom:4px;letter-spacing:.5px;}
+@keyframes fadein{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+#actions{display:flex;flex-direction:column;gap:12px;margin-top:24px;}
+.opt{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;min-height:64px;padding:16px 20px;
+  background:#fffdf6;border:1px solid #d9d1bc;border-radius:14px;
+  font-size:24px;color:#3b352b;text-align:center;line-height:1.4;
+  font-family:inherit;cursor:pointer;
+  transition:background .12s,transform .07s;
+  user-select:none;
+}
+.opt:active{background:#efe9d8;transform:scale(.99);}
+.opt.primary{background:#eef3e8;border-color:#c6d6bc;color:#3f5a36;}
+.opt.danger{background:#faf0ec;border-color:#e2c8bc;color:#8a4436;}
+.opt small{display:block;font-size:16px;color:#8b8270;margin-top:6px;font-weight:400;line-height:1.3;}
+#tabs{
+  flex:0 0 auto;display:flex;border-top:1px solid #ddd5c0;background:#f1ecdd;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+#tabs button{
+  flex:1;padding:14px 0;background:none;border:none;
+  font-size:16px;color:#7a7160;font-family:inherit;cursor:pointer;
+  transition:background .12s;
+}
+#tabs button:active{background:#e5dfcd;}
+#tabs button:disabled{opacity:.35;}
+#overlay{
+  position:absolute;inset:0;background:rgba(58,53,44,.38);
+  display:flex;align-items:flex-end;justify-content:center;z-index:50;
+}
+#overlay.hidden{display:none;}
+#panel{
+  width:100%;max-height:82%;overflow-y:auto;
+  background:#faf7ef;border-radius:20px 20px 0 0;
+  padding:24px 20px calc(30px + env(safe-area-inset-bottom));
+  animation:slideup .22s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes slideup{from{transform:translateY(40px);opacity:.5}to{transform:none;opacity:1}}
+#panel h3{font-size:22px;margin-bottom:16px;color:#3b352b;font-weight:600;}
+#panel h4{font-size:18px;margin:20px 0 8px;color:#6f6650;font-weight:600;}
+.row{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:14px 0;border-bottom:1px dashed #e0d9c6;
+}
+.row:last-child{border-bottom:none;}
+.row .info{flex:1;min-width:0;}
+.row .info b{font-size:20px;font-weight:600;}
+.row .info .sys{font-size:16px;color:#8b8270;line-height:1.5;margin-top:4px;}
+.row button{
+  flex:0 0 auto;padding:10px 16px;border:1px solid #c6d6bc;background:#eef3e8;
+  border-radius:10px;font-size:18px;color:#3f5a36;font-family:inherit;cursor:pointer;
+}
+.row button:active{background:#e0ead9;}
+.sys{font-size:16px;color:#8b8270;}
+textarea{
+  width:100%;height:100px;padding:12px;border:1px solid #d9d1bc;border-radius:10px;
+  background:#fffdf6;font-family:ui-monospace,Menlo,monospace;font-size:14px;
+  color:#5d5544;resize:none;line-height:1.5;
+}
+.bigbtn{
+  width:100%;padding:16px;margin-top:12px;border:1px solid #c6d6bc;
+  background:#eef3e8;border-radius:12px;font-size:20px;color:#3f5a36;
+  font-family:inherit;cursor:pointer;
+}
+.bigbtn:active{background:#e0ead9;}
+.bigbtn.warn{background:#faf0ec;border-color:#e2c8bc;color:#8a4436;}
+.tag{display:inline-block;padding:2px 8px;background:#ece7d6;border-radius:6px;font-size:14px;color:#7a7160;margin-left:6px;vertical-align:middle;}
+
+.grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+.grid-item {
+  background: #fffdf6; border: 1px solid #d9d1bc; border-radius: 10px;
+  padding: 12px 6px; text-align: center; font-size: 16px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 70px; user-select: none;
+}
+.grid-item:active { background: #efe9d8; }
+.grid-item b { font-size: 18px; margin-bottom: 4px; line-height: 1.2; }
+.grid-item small { font-size: 13px; color: #8b8270; line-height: 1.2; }
+
+#custom-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+#custom-modal.show { opacity: 1; pointer-events: auto; }
+#custom-modal .modal-box {
+  background: #faf7ef; width: 80%; max-width: 400px; border-radius: 16px;
+  padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  transform: translateY(20px); transition: transform 0.2s;
+  max-height: 70vh; overflow-y: auto;
+}
+#custom-modal.show .modal-box { transform: none; }
+#custom-modal h3 { font-size: 22px; margin-bottom: 12px; color: #3b352b; }
+#custom-modal p { font-size: 18px; line-height: 1.6; color: #5d5544; white-space: pre-wrap; margin-bottom: 16px; }
+#custom-modal button {
+  width: 100%; padding: 12px; background: #eef3e8; border: 1px solid #c6d6bc;
+  border-radius: 10px; font-size: 18px; color: #3f5a36; font-family: inherit; cursor: pointer;
+}
+
+.title-wrap{padding-top:40px;text-align:center;}
+.title-wrap h1{font-size:48px;letter-spacing:8px;font-weight:600;color:#3b352b;}
+.title-wrap .sub{font-size:16px;letter-spacing:4px;color:#a0957c;margin-top:8px;}
+.title-wrap .blurb{
+  margin:30px auto 20px;max-width:380px;text-align:left;
+  font-size:20px;line-height:1.8;color:#6f6650;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="statusbar"></div>
+  <div id="stage"></div>
+  <div id="tabs">
+    <button id="tabBag" disabled>背包</button>
+    <button id="tabLog" disabled>日志</button>
+    <button id="tabDex" disabled>图鉴</button>
+    <button id="tabSave">存档</button>
+  </div>
+  <div id="overlay" class="hidden"><div id="panel"></div></div>
+</div>
+
+<div id="custom-modal" onclick="if(event.target.id==='custom-modal') this.classList.remove('show')">
+  <div class="modal-box">
+    <h3 id="modal-title"></h3>
+    <p id="modal-desc"></p>
+    <button onclick="document.getElementById('custom-modal').classList.remove('show')">关闭</button>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const rnd = n => Math.floor(Math.random()*n);
+const pick = a => a[rnd(a.length)];
+const d20 = () => 1 + rnd(20);
+const getMod = v => Math.floor((v-10)/2);
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=rnd(i+1);const t=a[i];a[i]=a[j];a[j]=t;} return a; };
+const fmtSigned = n => (n >= 0 ? '+' : '') + n;
+
+window.showModal = function(title, desc) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-desc').textContent = desc;
+  document.getElementById('custom-modal').classList.add('show');
+};
+
+const CLASSES = [
+  { id:'warrior', name:'战士', desc:'高生命，擅长破门与近战。',
+    attrs:{str:16,dex:12,int:10,wis:12}, hp:24, torches:20, gold:20,
+    items:['iron_sword','crowbar','ration','ration','bandage'], tagBonus:{force:2, combat:1} },
+  { id:'rogue', name:'盗贼', desc:'敏捷，擅长开锁与攀爬。',
+    attrs:{str:12,dex:16,int:12,wis:14}, hp:18, torches:25, gold:20,
+    items:['dagger','lockpick','rope','ration','rogue_trick'], tagBonus:{lock:2, climb:2} },
+  { id:'scholar', name:'学者', desc:'智力与感知，擅长鉴定。',
+    attrs:{str:10,dex:12,int:16,wis:14}, hp:16, torches:22, gold:20,
+    items:['staff','scroll_identify','scroll_light','heal_potion','heal_potion'], tagBonus:{identify:2} }
+];
+
+const ITEMS = {
+  iron_sword:{name:'铁剑',type:'weapon',dmg:[3,7],desc:'剑刃有缺口，但足够沉重。'},
+  dagger:{name:'短匕',type:'weapon',dmg:[2,5],desc:'轻巧，贴身时很好用。'},
+  staff:{name:'法杖',type:'weapon',dmg:[2,4],desc:'杖头嵌着一颗暗淡的石头。'},
+  fire_sword:{name:'火纹长剑',type:'weapon',dmg:[6,10],desc:'剑身流淌着岩浆般的纹路，散发着恐怖的高温。'},
+  blood_sword:{name:'嗜血棱剑',type:'weapon',dmg:[5,11],desc:'边缘参差不齐的骨剑，靠近它就能听见冤魂的哀嚎。'},
+  berserk_axe:{name:'狂战巨斧',type:'weapon',dmg:[8,14],desc:'极其沉重，只有失去理智的狂战士才能挥动。'},
+  poison_dagger:{name:'剧毒之刃',type:'weapon',dmg:[5,8],desc:'刃口泛着幽幽的绿光，见血封喉。'},
+  shadow_blade:{name:'影袭短刃',type:'weapon',dmg:[6,9],desc:'轻若无物，在黑暗中甚至看不见剑刃。'},
+  arch_staff:{name:'大法师之杖',type:'weapon',dmg:[5,9],desc:'蕴含着强大的魔力，杖头的水晶散发着微光。'},
+  necro_book:{name:'死灵法典',type:'weapon',dmg:[4,10],desc:'书页翻动时隐约能听见亡者的哀嚎。'},
+  crowbar:{name:'撬棍',type:'tool',bonus:{lock:2,force:2},desc:'开锁与撬门时 +2。'},
+  rope:{name:'绳子',type:'tool',bonus:{climb:2},desc:'攀爬时 +2。'},
+  lockpick:{name:'开锁工具',type:'tool',bonus:{lock:2},desc:'开锁时 +2。'},
+  grapple:{name:'钩爪',type:'tool',bonus:{ranged:2},desc:'够取远处的东西时 +2。'},
+  shovel:{name:'铁锹',type:'tool',bonus:{dig:2},desc:'挖掘时 +2。'},
+  ration:{name:'干粮',type:'use',eff:{hp:4},desc:'难吃，但能填肚子。固定回复 4 点生命。'},
+  bandage:{name:'绷带',type:'use',eff:{hp:6},desc:'固定回复 6 点生命。'},
+  heal_potion:{name:'浓缩治疗药',type:'use',eff:{hpPct:0.4},desc:'直接使用，回复 40% 最大生命。'},
+  rogue_trick:{name:'盗贼的技艺',type:'use',uses:15,desc:'四处搜刮，获取金币或回血道具（需过敏捷检定DC12）。剩余次数：'},
+  torch_item:{name:'备用火把',type:'use',eff:{torches:1},desc:'使用后获得 1 支火把。'},
+  scroll_light:{name:'照明卷轴',type:'use',eff:{torches:2},desc:'展开后燃起两团光。火把 +2。'},
+  scroll_identify:{name:'鉴定卷轴',type:'use',eff:{identify:true},desc:'鉴定背包里的一瓶未鉴定药水。'},
+  amulet:{name:'护身符',type:'use',eff:{hp:10},desc:'温热的木牌，握紧后伤口收拢。固定回复 10 点生命。'},
+  bomb:{name:'炸弹',type:'use',eff:{bomb:15},desc:'战斗中使用：对敌人造成 15 点真实伤害（无视防御）。'},
+  whetstone:{name:'磨刀石',type:'use',eff:{atk:2},desc:'使用后本局攻击力 +2。'},
+  rune_stone:{name:'力量符文石',type:'use',eff:{atk:1, maxHp:5},desc:'使用后永久提升攻击力+1，生命上限+5。'},
+  dragon_heart:{name:'龙之心',type:'use',eff:{attr:'all', maxHp:20},desc:'使用后全属性+1，生命上限+20，并开启特殊结局。'},
+  
+  sausage:{name:'香肠',type:'use',eff:{hp:5},desc:'美味的香肠，回复 5 点生命。'},
+  cheese:{name:'奶酪',type:'use',eff:{hp:6},desc:'浓郁的奶酪，回复 6 点生命。'},
+  tomato:{name:'番茄',type:'use',eff:{hp:3},desc:'酸甜的番茄，回复 3 点生命。'},
+  bread:{name:'面包',type:'use',eff:{hp:8},desc:'松软的面包，回复 8 点生命。'},
+  burger:{name:'超级汉堡',type:'use',eff:{hp:25},desc:'用多种食材合成的美味，回复 25 点生命。'},
+  
+  fire_stone:{name:'火焰石',type:'tool',desc:'蕴含着纯粹火元素的石头，是打造火纹武器的核心材料。'},
+  illusion_mushroom:{name:'幻境蘑菇',type:'tool',desc:'散发着诡异的紫光，吃下会产生强烈的幻觉。'},
+  holy_water:{name:'圣水',type:'use',eff:{hpPct:0.2},desc:'恢复 20% 生命，并净化心智。'}
+};
+
+const POTION_COLORS = ['红','蓝','绿','黄','紫','灰'];
+const POTIONS = [
+  {name:'治疗药水', eff:{hpPct:0.35},  text:'温热的液体滑入喉咙，伤口开始收拢。回复 35% 最大生命。'},
+  {name:'毒药',     eff:{hp:-5}, text:'剧烈的灼烧感从胃里炸开，你几乎跪倒。'},
+  {name:'力量药水', eff:{atk:2}, text:'肌肉发热，握武器的手更稳了。'},
+  {name:'幸运药水', eff:{luck:1},text:'一种奇妙的轻松感笼罩了你。'},
+  {name:'火油',     eff:{fireoil:true},text:'浓稠的油脂。战斗中使用可以投掷。'},
+  {name:'金溶液',   eff:{goldsol:true},text:'瓶底沉着金屑。喝下会扣血但永久增加防御。'}
+];
+
+const ENEMIES = {
+  bat:{name:'洞穴蝙蝠',hp:8,atk:[1,3],ac:11,vuln:'fire',layer:1, desc:'一团疯狂拍打的皮膜，尖啸声刺得你耳膜发疼。', info:'很小，很难打中。惧火。'},
+  walking_mushroom:{name:'走路菇',hp:10,atk:[2,4],ac:10,vuln:'fire',layer:1, desc:'一朵长着两条细腿的硕大蘑菇，走起路来摇摇晃晃。', info:'极度惧火。'},
+  slime:{name:'史莱姆',hp:12,atk:[1,5],ac:9,vuln:'fire',layer:1, desc:'一坨半透明的绿色胶状物，里面似乎包裹着几枚硬币。', info:'物理攻击效果一般，惧火。'},
+  skeleton:{name:'骷髅战士',hp:12,atk:[2,5],ac:12,vuln:'fire',layer:1, desc:'关节错位的骨架，眼窝里有微光在动。它举着一面锈蚀的圆盾。', info:'骨头干燥，火能烧穿它。'},
+  
+  wolf:{name:'暗影狼',hp:18,atk:[3,6],ac:13,vuln:null,layer:2, desc:'皮毛如同黑洞般吞噬光线，只有两只猩红的眼睛在闪烁。', info:'速度快，不怕火。惧怕冰霜。'},
+  zombie:{name:'腐化僵尸',hp:22,atk:[3,7],ac:10,vuln:'fire',layer:2, desc:'半张脸已经腐烂脱落，走起路来一瘸一拐，但力大无穷。', info:'行动迟缓，惧火。'},
+  horned_horse:{name:'双角马',hp:20,atk:[4,6],ac:12,vuln:null,layer:2, desc:'头生双角的战马，双眼血红，马蹄踏地发出轰鸣。', info:'冲击力极强，防御较低。'},
+  
+  imp:{name:'烈焰小鬼',hp:20,atk:[4,7],ac:13,vuln:null,resist:'fire',layer:3, desc:'浑身燃烧着绿色火焰的小恶魔，手里拿着一把叉子。', info:'火属性完全免疫。'},
+  fire_sprite:{name:'火精灵',hp:25,atk:[5,8],ac:14,vuln:null,resist:'fire',layer:3, desc:'纯粹由火焰构成的生命体，散发着极高的温度。', info:'免疫火焰。' },
+  ice_elem:{name:'冰霜元素',hp:25,atk:[4,8],ac:14,vuln:'fire',layer:3, desc:'由坚冰组成的巨大人形，散发着刺骨的寒气。', info:'惧怕火焰。'},
+  
+  golem:{name:'泥土魔像',hp:35,atk:[5,9],ac:15,vuln:null,resist:'physical',layer:4, desc:'由泥土和岩石拼凑而成的巨大人形，动作迟缓但坚不可摧。', info:'物理防御极高（减伤50%）。惧怕魔法。'},
+  headless:{name:'无头骑士',hp:40,atk:[6,10],ac:16,vuln:null,layer:4,elite:true, desc:'穿着一身漆黑的铠甲，脖子以上的部分空空如也，手里提着把巨剑。', info:'铠甲极厚。攻击力极高。'},
+  
+  abyss_guard:{name:'深渊守卫',hp:50,atk:[7,12],ac:17,vuln:null,layer:5,elite:true, desc:'手持巨大的长戟，浑身散发着令人作呕的深渊气息。', info:'所有抗性极高。'},
+  eye_monster:{name:'凝视之眼',hp:35,atk:[8,11],ac:14,vuln:null,layer:5, desc:'一颗巨大的漂浮眼球，周围长满了触手。', info:'精神污染，攻击无视部分防御。'},
+  
+  dragon:{name:'深渊魔龙',hp:100,atk:[10,18],ac:18,vuln:null,is_hidden:true, desc:'庞大的巨龙，黑色的鳞片覆盖全身，每一次呼吸都带着硫磺味。', info:'极度恐怖的存在。'},
+  
+  miniboss_1:{name:'腐化史莱姆',hp:35,atk:[4,7],ac:11,vuln:'fire',miniboss:true, desc:'巨大的绿色胶状物，里面包裹着未消化完的骸骨。', info:'极度惧火。'},
+  miniboss_2:{name:'亡者骑士',hp:42,atk:[5,9],ac:15,vuln:null,miniboss:true, desc:'它穿着残破的黑铁重甲，头盔里亮着两团幽蓝色的火焰。', info:'防御极高，火焰有奇效。'},
+  miniboss_3:{name:'寒冰巨魔',hp:48,atk:[6,10],ac:14,vuln:'fire',miniboss:true, desc:'披着厚重白毛的巨魔，手里挥舞着一根冰霜巨棒。', info:'惧怕火焰。'},
+  miniboss_4:{name:'血肉蠕虫',hp:55,atk:[7,11],ac:13,vuln:'fire',miniboss:true, desc:'一节一节的恶心肉虫，口器里长满了旋转的利齿。', info:'极度惧火。'},
+  miniboss_5:{name:'虚空刺客',hp:50,atk:[9,13],ac:16,vuln:null,miniboss:true, desc:'笼罩在灰雾中的身影，看不清面目，只有两把匕首反着光。', info:'高闪避，高暴击。'},
+  boss:{name:'骸骨之王',hp:100,atk:[8,15],ac:17,vuln:'fire',boss:true, desc:'它坐在由无数骨头堆成的王座上。王冠是某个人的头骨。它站了起来。', info:'残血时会狂暴。火焰对它有效。'}
+};
+
+const TRAITS = {
+  flame:{name:'火焰附魔',desc:'攻击惧火的敌人时伤害翻倍。',tag:'fire'},
+  vamp:{name:'吸血',desc:'击杀敌人后回复 3 点生命。'},
+  thorn:{name:'荆棘',desc:'每次受伤后反弹 2 点伤害。'},
+  heavy:{name:'重甲',desc:'防御 +2，但逃跑检定 -2。',def:2},
+  luckcoin:{name:'幸运骰',desc:'获得时幸运 +1。',luck:1},
+  keen:{name:'锐利',desc:'攻击检定 +2。',atkCheck:2},
+  swift:{name:'疾行靴',desc:'逃跑检定 +2。',flee:2},
+  torchbearer:{name:'守火人',desc:'每层开始时火把 +1。',floorTorch:1},
+  shield:{name:'护盾发生器',desc:'每进入一层获得 5 点临时护盾（抵挡下一次伤害）。',shield:5},
+  alchemist:{name:'炼金师',desc:'药水效果翻倍。'},
+  lifesteal:{name:'嗜血',desc:'每次攻击命中回复 1 点生命。'},
+  fire_mastery:{name:'火焰精通',desc:'造成火属性伤害时 +3。'},
+  dodge:{name:'闪避',desc:'受到的伤害 -1（最低 1 点）。'},
+  sniper:{name:'狙击',desc:'战斗第一回合攻击检定 +5。'},
+  blue_flame:{name:'蓝色火焰',desc:'造成火属性伤害时 +1。'},
+  
+  warrior_unyielding:{name:'不屈之躯',desc:'战士专属。生命低于30%时，防御+5。'},
+  rogue_fatal:{name:'致命一击',desc:'盗贼专属。攻击检定天然20时，伤害变为三倍。'},
+  sage:{name:'贤者',desc:'学者专属。智力检定 +2。'},
+  scholar_omniscient:{name:'大贤者',desc:'学者专属。所有智力检定必定成功（掷出1除外）。'},
+
+  weak:{name:'虚弱',desc:'攻击力永久 -2。',atk:-2},
+  slow:{name:'迟钝',desc:'敏捷检定 -2。',dexCheck:-2},
+  blind:{name:'失明',desc:'感知检定 -2，且无法发现陷阱。',wisCheck:-2},
+  bad_luck:{name:'霉运',desc:'每次受到攻击额外损失 1 点生命。',curse:'dmg'},
+  cursed:{name:'诅咒之甲',desc:'防御 +3，但每层开始损失 1 支火把。',def:3,curse:'torch'},
+  wound:{name:'伤口',desc:'每走一步都会扣 1 点血。'},
+  broken_pocket:{name:'破口袋',desc:'每次做出选择都会掉 2 个金币。'},
+  gluttony:{name:'暴食',desc:'每次行动有30%概率吃掉背包里的食物。'},
+  arrogance:{name:'傲慢',desc:'战斗的第一回合，你只能防御或使用物品，无法攻击。'},
+
+  blood_pact:{name:'血契',desc:'攻击力 +3，但生命上限 -5。',atk:3,maxHpPenalty:5},
+  glass_cannon:{name:'玻璃大炮',desc:'造成的伤害翻倍，但受到的伤害也翻倍。'},
+  gambler:{name:'赌徒',desc:'攻击检定 +5，但如果检定大失败（丢出1），你会反伤自己。',atkCheck:5},
+  paranoia:{name:'偏执',desc:'防御 +4，但每层损失 5 金币。',def:4,curse:'gold'},
+  
+  vamp_lord:{name:'血族领主',desc:'吸血效果从 +3 变成 +5，击杀精英怪回满血。'},
+  cursed_power:{name:'诅咒之力',desc:'每持有一个负面词条，攻击力 +2。'},
+  vampire:{name:'吸血鬼',desc:'吸血溢出的治疗量，将转化为等量的临时护盾。'},
+  paladin:{name:'圣骑士',desc:'护盾破裂时，对当前敌人造成 10 点神圣伤害。'},
+  executioner:{name:'处决',desc:'对生命值低于 20% 的敌人伤害翻倍。'},
+  berserk:{name:'狂暴',desc:'生命低于 30% 时，攻击检定 +3，伤害 +2。'},
+  greed:{name:'贪婪硬币',desc:'金币 +50%，但商人涨价。',goldMult:1.5}
+};
+
+const EVENTS = [
+  { id:'irondoor', 
+    text:'一扇铁门嵌在石壁里。门缝渗出冷气，锁孔锈迹斑斑，门轴上有新鲜的刮痕。',
+    opts:[
+      {label:'推门', check:{attr:'str',dc:18,tag:'force'},
+        res:{great:{text:'门轰然洞开，门后的骷髅还没反应过来。地上散落着金币。',eff:{gold:8,combat:'skeleton'}},
+             success:{text:'门被推开一条缝，你挤了进去。地上散落着几枚金币。',eff:{gold:6}},
+             fail:{text:'门纹丝不动。你愤怒地踹了一脚，门框上掉下几枚金币。（遭遇战斗）',eff:{gold:3,combat:'skeleton'}},
+             crit:{text:'门轴崩裂，碎铁划伤你的手臂，但也震落了墙上的暗格金币。',eff:{hp:-3,gold:10}}}},
+      {label:'撬锁', check:{attr:'dex',dc:13,tag:'lock'},
+        res:{great:{text:'锁芯轻响，门开了。门后的暗格里还藏着一小袋金币。',eff:{gold:20}},
+             success:{text:'撬棍一别，锁开了。门后是一条向下的走廊。',eff:{}},
+             fail:{text:'撬棍滑脱，发出刺耳声响。远处有东西在靠近。',eff:{combat:'skeleton'}},
+             crit:{text:'锁芯断裂，撬棍卡死在里面，你只能放弃。',eff:{hp:-1}}}},
+      {label:'离开', res:{text:'你绕开了这扇门，继续往深处走。'}}
+    ]},
+  { id:'pool', 
+    text:'一池幽蓝的水在黑暗中发光。水面平静，池底似乎沉着什么东西，反着金属的光。',
+    opts:[
+      {label:'喝一口', res:{text:'水又苦又涩，但你感觉身体有了些变化。', eff:[{hp:5},{hp:-4},{hp:2,gold:10},{torches:2}]}},
+      {label:'装一瓶', res:{text:'你把发光的水灌进空瓶，塞好塞子。', eff:{item:'potion0'}}},
+      {label:'伸手去捞池底', check:{attr:'dex',dc:14,tag:'dodge'},
+        res:{great:{text:'你捞起一枚湿漉漉的金币，还有一枚戒指。',eff:{gold:25}},
+             success:{text:'你捞到几枚金币。',eff:{gold:10}},
+             fail:{text:'你的手冻得发麻，什么也没捞到。',eff:{hp:-2}},
+             crit:{text:'池水突然翻涌，你整个人被拽了一下，撞在池沿上。',eff:{hp:-5}}}},
+      {label:'离开', res:{text:'你没有碰这池水。'}}
+    ]},
+  
+  { id:'chest', 
+    text:'一只上锁的木箱靠在墙角，黄铜锁还闪着光。箱盖上刻着一个模糊的家徽。',
+    opts:[
+      {label:'开锁', check:{attr:'dex',dc:13,tag:'lock'},
+        res:{great:{text:'锁应声而开。箱子里不仅有钱，还有一块符文石或火焰石。',eff:{gold:18,item:pick(['rune_stone','fire_stone'])}},
+             success:{text:'锁开了。里面有些金币。',eff:{gold:10}},
+             fail:{text:'锁没开，你的手被毛刺划了一下。',eff:{hp:-1}},
+             crit:{text:'锁芯里弹出一根细针，扎进你的指头。',eff:{hp:-4}}}},
+      {label:'砸开', check:{attr:'str',dc:15,tag:'force'},
+        res:{great:{text:'箱子四分五裂，里面的东西一件不少。',eff:{gold:16,item:'potion2'}},
+             success:{text:'箱盖被砸开了，你取出里面的东西。',eff:{gold:8}},
+             fail:{text:'箱子没开，你的手掌震得发麻。',eff:{hp:-2}},
+             crit:{text:'箱盖弹起来砸中你的下巴，里面的瓷瓶碎了一半。',eff:{hp:-4,gold:4}}}},
+      {label:'离开', res:{text:'你留下了这只箱子。'}}
+    ]},
+  { id:'glowing', 
+    text:'通道中央浮着一团淡淡的光，里面似乎裹着什么东西。',
+    opts:[
+      {label:'伸手进去', check:{attr:'dex',dc:13,tag:'dodge'},
+        res:{great:{text:'你抓住了那个东西，光散开了。是一枚温热的护符。',eff:{trait:'flame'}},
+             success:{text:'你摸到一点东西，光随即熄灭。',eff:{gold:12}},
+             fail:{text:'光团灼伤了你的手。',eff:{hp:-4}},
+             crit:{text:'光团爆开了，你的手臂一片焦黑。',eff:{hp:-7}}}},
+      {label:'用棍子挑', check:{attr:'int',dc:12,tag:'identify'},
+        res:{great:{text:'你用武器挑出那东西，是一块能燃烧的石头。',eff:{trait:'flame'}},
+             success:{text:'你把东西挑了出来。是一小袋金币。',eff:{gold:10}},
+             fail:{text:'棍子刚碰到光，光就消失了。',eff:{}},
+             crit:{text:'光团顺着棍子爬到你手上。',eff:{hp:-5}}}},
+      {label:'离开', res:{text:'你让那团光留在原地。'}}
+    ]},
+
+  { id:'kitchen',
+    text:'一个破败的厨房。灶台上散落着一些食材。',
+    opts:[
+      {label:'搜寻食材', check:{attr:'wis',dc:10,tag:'search'},
+        res:{great:{text:'你找到了香肠、奶酪、番茄和面包！',eff:[{item:'sausage'},{item:'cheese'},{item:'tomato'},{item:'bread'}]}},
+             success:{text:'你找到了几样食材。',eff:[{item:pick(['sausage','cheese','tomato','bread'])}]},
+             fail:{text:'只剩下一些发霉的残渣。',eff:{}},
+             crit:{text:'老鼠从角落里窜出来咬了你一口。',eff:{hp:-3}}}},
+      {label:'尝试合成汉堡', 
+        fn: function() {
+          var has = function(id) { return RUN.inv.some(function(i){return i.id===id;}); };
+          if (has('sausage') && has('cheese') && has('tomato') && has('bread')) {
+            removeItem('sausage'); removeItem('cheese'); removeItem('tomato'); removeItem('bread');
+            addItem('burger');
+            setScene('<p>你熟练地将食材组合在一起，烤制出了一个美味的<b>超级汉堡</b>！</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+          } else {
+            setScene('<p>你需要香肠、奶酪、番茄和面包才能合成超级汉堡。</p>', [{label:'离开', fn: afterNode}]);
+          }
+        }},
+      {label:'离开', res:{text:'你离开了厨房。'}}
+    ]},
+
+  { id:'sword_tomb', req:'warrior',
+    text:'一座古老的剑冢。数十把残破的剑插在土里，中央有一把散发着微光的巨剑。',
+    opts:[
+      {label:'拔出中央的巨剑', check:{attr:'str',dc:16,tag:'force'},
+        res:{great:{text:'巨剑破土而出！你感到无尽的力量涌入体内。',eff:{trait:'warrior_unyielding'}},
+             success:{text:'你拔出了巨剑，但受到了剑气的反噬。',eff:{hp:-5}},
+             fail:{text:'巨剑纹丝不动，你的虎口被震裂了。',eff:{hp:-3}},
+             crit:{text:'剑冢突然崩塌，你被压在了下面。',eff:{hp:-10}}}},
+      {label:'祭拜剑冢', res:{text:'你向历代剑客致敬，感到心境更加沉稳。', eff:{maxHp:10, hp:10}}}
+    ]},
+  { id:'secret_vault', req:'rogue',
+    text:'一面看似普通的石墙，但你敏锐地发现墙缝里有极其隐蔽的锁孔。',
+    opts:[
+      {label:'开锁', check:{attr:'dex',dc:16,tag:'lock'},
+        res:{great:{text:'石墙翻转！里面是一个惊人的宝库，还有一份致命毒药的配方。',eff:{gold:50, trait:'rogue_fatal'}},
+             success:{text:'你打开了暗门，拿到了大量金币。',eff:{gold:30}},
+             fail:{text:'锁孔里喷出毒气，你赶紧屏住呼吸后退。',eff:{hp:-4}},
+             crit:{text:'机关完全卡死，发出了刺耳的警报声。',eff:{hp:-5, combat:'cultist'}}}},
+      {label:'强行破拆', check:{attr:'str',dc:18,tag:'force'},
+        res:{great:{text:'你用蛮力砸开了墙，里面只有一些散落的金币。',eff:{gold:20}},
+             success:{text:'你砸开了一个小洞，摸出几枚金币。',eff:{gold:10}},
+             fail:{text:'墙太硬了，你什么也没得到。',eff:{hp:-2}},
+             crit:{text:'一块巨石砸下来，砸断了你的几根骨头。',eff:{hp:-8}}}}
+    ]},
+  { id:'forbidden_lib', req:'scholar',
+    text:'一座巨大的地下图书馆。书架上摆满了用未知语言写成的禁忌古籍。',
+    opts:[
+      {label:'阅读古籍', check:{attr:'int',dc:16,tag:'identify'},
+        res:{great:{text:'你窥探到了宇宙的真理，精神力量大幅提升！',eff:{trait:'sage', maxHp:5}},
+             success:{text:'你勉强读懂了一部分，智力得到了提升。',eff:{attr:'int'}},
+             fail:{text:'文字化作无数虫子在纸上爬行，你感到一阵恶心。',eff:{hp:-4}},
+             crit:{text:'古籍中封印的恶灵冲入了你的大脑。',eff:{hp:-10}}}},
+      {label:'焚烧图书馆', res:{text:'火焰吞噬了这些邪恶的知识，你在灰烬中找到了未烧毁的宝物。', eff:{torches:-3, item:'rune_stone'}}}
+    ]},
+  
+  { id:'rift', 
+    text:'空气中裂开了一道漆黑的空间裂缝，里面传出令人毛骨悚然的龙啸声。',
+    opts:[
+      {label:'潜入裂缝', check:{attr:'wis',dc:18,tag:'search'},
+        res:{great:{text:'你穿过了裂缝，踏入了一片岩浆之地。一条巨龙正盯着你。',eff:{combat:'dragon'}},
+             success:{text:'你刚踏入就感到窒息的压迫感，立刻退了回来。',eff:{hp:-10}},
+             fail:{text:'裂缝中爆发的力量把你弹飞了。',eff:{hp:-6}},
+             crit:{text:'你被空间乱流绞碎了半条手臂。',eff:{hp:-15}}}},
+      {label:'远离裂缝', res:{text:'你咽了口唾沫，绕道而行。'}}
+    ]},
+
+  { id:'fire_will', floor:[3],
+    text:'一团纯粹的火元素挡在了你的面前，它化作人形，眼中闪烁着战意。',
+    opts:[
+      {label:'接受试炼（挑战火精灵）', 
+        fn: function() {
+           var startFire = function() {
+              RUN.combat = { id:'fire_sprite', hp:40, maxHp:40, known:true, round:1, atk:[6,10] };
+              RUN.combat.is_fire_trial = true;
+              showCombat('火精灵化作烈火！');
+           };
+           setScene('<p>火精灵向你扑来！</p>', [{label:'迎战', cls:'danger', fn: startFire}]);
+        }},
+      {label:'离开', res:{text:'你避开了火元素。'}}
+    ]},
+  { id:'blood_fall', floor:[3],
+    text:'一道由粘稠血液组成的瀑布倾泻而下。你感到一阵口干舌燥，似乎有一股魔力在吸引你。',
+    opts:[
+      {label:'吸食血液', 
+        fn: function() {
+          if (RUN.inv.some(function(i){return i.id==='blood_sword';}) || hasTrait('vamp') || hasTrait('vampire')) {
+            RUN.hp = clamp(RUN.hp + Math.floor(RUN.maxHp * 0.5), 0, RUN.maxHp);
+            setScene('<p>你大口吞咽着血液，不仅伤势痊愈，一股难以言喻的快感也涌上心头。你的瞳孔变成了血红色。</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+          } else {
+            RUN.hp -= 10;
+            setScene('<p>血液让你作呕，你感到一阵眩晕，失去了 10 点生命。</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+          }
+        }},
+      {label:'离开', res:{text:'你抵挡住了诱惑。'}}
+    ]},
+  { id:'illusion', floor:[3],
+    text:'空气中弥漫着紫色的迷雾，你吸入了迷雾，周围的世界开始扭曲。',
+    opts:[
+      {label:'走入迷雾', 
+        fn: function() {
+          if (hasTrait('berserk') || hasTrait('thorn')) {
+            setScene('<p>你在幻境中看到了自己狂暴的倒影，你与他融为一体，彻底释放了内心的野兽！</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+          } else {
+            RUN.hp -= 5;
+            setScene('<p>幻境让你精神恍惚，你头痛欲裂，生命 -5。</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+          }
+        }},
+      {label:'离开', res:{text:'你屏住呼吸退了出去。'}}
+    ]}
+];
+
+const META_KEY = 'shenqian_meta_v1';
+let META = {bestiary:{}, deaths:[], endings:[], runs:0, wins:0};
+let RUN = null;
+
+function loadMeta(){
+  try{
+    const raw = localStorage.getItem(META_KEY);
+    if (raw){ const o = JSON.parse(raw); META = Object.assign(META, o); }
+  }catch(e){}
+}
+function saveMeta(){
+  try{ localStorage.setItem(META_KEY, JSON.stringify(META)); }catch(e){}
+}
+
+function b64e(str){
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function b64d(b){
+  const bin = atob(b);
+  const bytes = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+function exportCode(){
+  const data = { v:1, meta:META, run:RUN ? serializeRun(RUN) : null };
+  return 'SP1.' + b64e(JSON.stringify(data));
+}
+function serializeRun(r){
+  return {
+    cls:r.cls, attrs:r.attrs, hp:r.hp, maxHp:r.maxHp, shield:r.shield||0,
+    torches:r.torches, gold:r.gold, luck:r.luck,
+    inv:r.inv, traits:r.traits, floor:r.floor, step:r.step,
+    potionMap:r.potionMap, identified:r.identified, atkBonus:r.atkBonus||0,
+    level:r.level, exp:r.exp, nextExp:r.nextExp,
+    forgeCount:r.forgeCount||0, boughtEnchant:r.boughtEnchant||false, bonusDef:r.bonusDef||0,
+    subclass:r.subclass, floorFarms:r.floorFarms
+  };
+}
+function importCode(code){
+  code = (code||'').trim();
+  if (code.indexOf('SP1.') !== 0) throw new Error('存档码格式不正确');
+  const obj = JSON.parse(b64d(code.slice(4)));
+  if (!obj || obj.v !== 1) throw new Error('存档码版本不支持');
+  META = Object.assign({bestiary:{},deaths:[],endings:[],runs:0,wins:0}, obj.meta||{});
+  if (!META.endings) META.endings = [];
+  saveMeta();
+  if (obj.run){
+    RUN = Object.assign({scene:null,combat:null,lastDice:null,log:[],nodes:[],level:1, exp:0, nextExp:20, shield:0, forgeCount:0, boughtEnchant:false, bonusDef:0, subclass:null, floorFarms:0}, obj.run);
+    resumeRun();
+  } else {
+    RUN = null;
+    render();
+  }
+}
+
+function isPotion(id){ return id.indexOf('potion') === 0; }
+function potionColorIndex(id){ return +id.slice(6); }
+function getItemDef(id){
+  if (isPotion(id)){
+    const ci = potionColorIndex(id);
+    const known = RUN && RUN.identified[ci];
+    const p = RUN ? POTIONS[RUN.potionMap[ci]] : POTIONS[0];
+    return {
+      name: known ? p.name : POTION_COLORS[ci] + '色药水',
+      desc: known ? p.text : '一瓶' + POTION_COLORS[ci] + '色的液体。在非战斗状态下点击使用可进行鉴定。',
+      type:'use', potion:true, colorIndex:ci
+    };
+  }
+  return ITEMS[id] || {name:'未知物', desc:'', type:'tool'};
+}
+function addItem(id){
+  RUN.inv.push({id});
+  return getItemDef(id).name;
+}
+function removeItem(id) {
+  const idx = RUN.inv.findIndex(i=>i.id===id);
+  if(idx>=0) RUN.inv.splice(idx,1);
+}
+function getWeaponObj(){
+  for (const it of RUN.inv){
+    const d = ITEMS[it.id];
+    if (d && d.type === 'weapon') return it;
+  }
+  return null;
+}
+function getDef(){
+  let d = RUN.bonusDef || 0;
+  RUN.traits.forEach(t => { if (TRAITS[t] && TRAITS[t].def) d += TRAITS[t].def; });
+  return d;
+}
+function hasTrait(id){ return RUN.traits.indexOf(id) >= 0; }
+function getTraitPenalty(){
+  let penalty = { str:0, dex:0, int:0, wis:0, atk:0, dmgTaken:0 };
+  RUN.traits.forEach(t => {
+    if (t === 'weak') penalty.atk -= 2;
+    if (t === 'slow') penalty.dex -= 2;
+    if (t === 'blind') penalty.wis -= 2;
+    if (t === 'bad_luck') penalty.dmgTaken += 1;
+  });
+  return penalty;
+}
+
+function applyEff(eff){
+  if (!eff) return;
+  if (Array.isArray(eff)) eff = pick(eff);
+  if (eff.hp) RUN.hp = clamp(RUN.hp + eff.hp, 0, RUN.maxHp);
+  if (eff.hpPct) RUN.hp = clamp(RUN.hp + Math.floor(RUN.maxHp * eff.hpPct), 0, RUN.maxHp);
+  if (eff.maxHp) { RUN.maxHp += eff.maxHp; RUN.hp += eff.maxHp; }
+  if (eff.torches) RUN.torches = Math.max(0, RUN.torches + eff.torches);
+  if (eff.gold) RUN.gold = Math.max(0, RUN.gold + eff.gold);
+  if (eff.luck) RUN.luck += eff.luck;
+  if (eff.atk) RUN.atkBonus = (RUN.atkBonus||0) + eff.atk;
+  if (eff.atkBonus) RUN.atkBonus = (RUN.atkBonus||0) + eff.atkBonus;
+  if (eff.attr) {
+    if (eff.attr === 'all') {
+      RUN.attrs.str += 1; RUN.attrs.dex += 1; RUN.attrs.int += 1; RUN.attrs.wis += 1;
+    } else {
+      RUN.attrs[eff.attr] += 1;
+    }
+  }
+  if (eff.item) addItem(eff.item);
+  if (eff.trait && !hasTrait(eff.trait)){
+    if (eff.trait === 'sage' && hasTrait('sage')) {
+      eff.trait = 'scholar_omniscient';
+    }
+    if (!hasTrait(eff.trait)) {
+      RUN.traits.push(eff.trait);
+      const t = TRAITS[eff.trait];
+      if (t && t.luck) RUN.luck += t.luck;
+      if (t && t.shield) RUN.shield = (RUN.shield||0) + t.shield;
+      if (t && t.maxHpPenalty) { RUN.maxHp -= t.maxHpPenalty; RUN.hp = Math.min(RUN.hp, RUN.maxHp); }
+    }
+  }
+}
+
+function doCheck(attr, dc, tag){
+  if (RUN.cls === 'scholar' && attr === 'int' && hasTrait('scholar_omniscient')) {
+    const roll = d20();
+    if (roll !== 1) {
+      RUN.lastDice = { bad:false, html:'<span class="big">大贤者</span>必成功' };
+      return 'great';
+    }
+  }
+
+  const roll = d20();
+  const pen = getTraitPenalty();
+  let bonus = getMod(RUN.attrs[attr]) + (pen[attr] || 0);
+  const parts = [fmtSigned(getMod(RUN.attrs[attr])) + '属性'];
+  
+  if (pen[attr]) parts.push(fmtSigned(pen[attr]) + '负面词条');
+
+  const cls = CLASSES.find(c=>c.id === RUN.cls);
+  if (tag && cls && cls.tagBonus && cls.tagBonus[tag]){
+    bonus += cls.tagBonus[tag];
+    parts.push(fmtSigned(cls.tagBonus[tag]) + '职业');
+  }
+  if (attr === 'int' && hasTrait('sage')) {
+    bonus += 2;
+    parts.push('+2 贤者');
+  }
+  for (const it of RUN.inv){
+    const d = ITEMS[it.id];
+    if (d && d.bonus && tag && d.bonus[tag]){
+      bonus += d.bonus[tag];
+      parts.push(fmtSigned(d.bonus[tag]) + d.name);
+    }
+  }
+  if (RUN.torches <= 0){
+    bonus -= 5;
+    parts.push('-5 黑暗');
+  }
+  const total = roll + bonus;
+  let tier;
+  if (roll === 1) tier = 'crit';
+  else if (roll === 20 || total >= dc + 10) tier = 'great';
+  else if (total >= dc) tier = 'success';
+  else if (total >= dc - 4) tier = 'fail';
+  else tier = 'crit';
+
+  const label = {str:'力量',dex:'敏捷',int:'智力',wis:'感知'}[attr] || attr;
+  const tierName = {great:'大成功',success:'成功',fail:'失败',crit:'大失败'}[tier];
+  const bad = (tier === 'fail' || tier === 'crit');
+  RUN.lastDice = {
+    bad: bad,
+    html: '<span class="big">' + label + '检定 · ' + tierName + '</span>' +
+      'd20(' + roll + ') ' + parts.join(' ') + ' = ' + total + ' vs DC ' + dc
+  };
+  return tier;
+}
+
+function rollNodes(){
+  const types = ['combat','event','treasure','trap','merchant','rest','shrine','blacksmith'];
+  const pool = shuffle(types).slice(0,3);
+  return pool.map(t => Math.random() < 0.18 ? 'unknown' : t);
+}
+function useTorch(n){
+  RUN.torches = Math.max(0, RUN.torches - n);
+}
+function goFloor(){
+  RUN.step = 0;
+  RUN.floorFarms = 0;
+  RUN.nodes = rollNodes();
+  renderFloor();
+}
+function renderFloor(){
+  const names = {combat:'战斗',event:'事件',treasure:'宝藏',trap:'陷阱',merchant:'商人',rest:'休息',shrine:'神龛',blacksmith:'铁匠',unknown:'未知'};
+  const subs = {
+    combat:'有什么东西在前面等着', event:'不知道会遇到什么',
+    treasure:'也许有好东西', trap:'地面看起来不太对',
+    merchant:'隐约有说话声', rest:'有火光',
+    shrine:'有一座石像', blacksmith:'传来打铁声', unknown:'看不清'
+  };
+  const opts = RUN.nodes.map(t => ({
+    label: names[t] + '<small>' + subs[t] + '</small>',
+    fn: () => enterNode(t)
+  }));
+  const dark = RUN.torches <= 0;
+  const html = '<p>第 ' + RUN.floor + ' 层 · 第 ' + (RUN.step + 1) + ' / 10 个路口</p>' +
+    '<p class="sys">火把 ' + RUN.torches + ' ｜ 生命 ' + RUN.hp + '/' + RUN.maxHp + ' ｜ 金币 ' + RUN.gold + '</p>' +
+    (dark ? '<p class="em">黑暗笼罩着你。火把烧完了，所有检定 DC +5。</p>' : '') +
+    '<p>你面前有三条路。火把的火苗在风里歪了一下。</p>';
+  setScene(html, opts);
+}
+function enterNode(type){
+  if (type === 'unknown') type = pick(['combat','event','treasure','trap']);
+  useTorch(1);
+  RUN.step++;
+  
+  if (hasTrait('wound')) {
+    RUN.hp -= 1;
+    RUN.log.push('伤口作痛，生命 -1。');
+    if (RUN.hp <= 0) return die('伤口感染而死。');
+  }
+  if (hasTrait('broken_pocket')) {
+    RUN.gold = Math.max(0, RUN.gold - 2);
+  }
+  if (hasTrait('gluttony') && Math.random() < 0.3) {
+    const foodIdx = RUN.inv.findIndex(it => ['ration','bandage','sausage','cheese','tomato','bread','burger'].includes(it.id));
+    if (foodIdx >= 0) {
+      RUN.inv.splice(foodIdx, 1);
+      RUN.log.push('暴食发作，你忍不住吃掉了背包里的食物！');
+    }
+  }
+
+  if (RUN.torches <= 0) RUN.log.push('火把熄灭了。');
+  
+  if (type === 'combat') {
+    const pool = [];
+    for (const k in ENEMIES) {
+      const e = ENEMIES[k];
+      if (e.boss || e.miniboss || e.is_hidden) continue;
+      if (e.layer === RUN.floor) pool.push(k);
+    }
+    return startCombat(pick(pool));
+  }
+  
+  if (type === 'event') {
+    if (RUN.floor === 3 && Math.random() < 0.3) {
+      const subEvents = ['fire_will', 'blood_fall', 'illusion'];
+      const subEv = EVENTS.find(e=>e.id === pick(subEvents));
+      return showEvent(subEv);
+    }
+    
+    let avail = EVENTS.filter(e => !e.req || e.req === RUN.cls);
+    if (!avail || avail.length === 0) avail = EVENTS;
+    return showEvent(pick(avail));
+  }
+  
+  if (type === 'treasure') {
+    const tPool = ['chest', 'glowing'];
+    const evId = pick(tPool);
+    const ev = EVENTS.find(e => e.id === evId);
+    return showEvent(ev || EVENTS[0]);
+  }
+  
+  if (type === 'trap') {
+    return showEvent({
+      text:'地面有一块颜色略深的石砖。你的脚刚踩上去，砖块就下沉了半寸。',
+      opts:[
+        {label:'立刻后跳', check:{attr:'dex',dc:13,tag:'dodge'},
+          res:{great:{text:'你干净利落地跳开，地刺在你刚才站的地方弹起。',eff:{}},
+               success:{text:'你跳开了，但鞋底被划了一道。',eff:{hp:-1}},
+               fail:{text:'地刺弹出，扎进你的小腿。',eff:{hp:-5}},
+               crit:{text:'你被地刺钉在原地，挣扎了好一会儿才脱身。',eff:{hp:-8}}}},
+        {label:'硬扛过去', res:{text:'地刺弹起，你硬着头皮踩了过去。', eff:{hp:-4}}}
+      ]
+    });
+  }
+  
+  if (type === 'merchant') return showMerchant();
+  if (type === 'rest') return showRest();
+  if (type === 'shrine') return showShrine();
+  if (type === 'blacksmith') return showBlacksmith();
+  return afterNode();
+}
+
+function showEvent(ev){
+  if (!ev) return afterNode();
+  if (!ev.opts) ev.opts = [{label:'离开', res:{text:'什么也没有发生。'}}];
+  
+  const opts = ev.opts.map(o => ({
+    label: o.label,
+    fn: () => {
+      if (o.fn) return o.fn();
+      resolveOption(o);
+    }
+  }));
+  setScene('<p>' + (ev.text || '...') + '</p>', opts);
+}
+function resolveOption(opt){
+  let res;
+  if (opt.check){
+    const tier = doCheck(opt.check.attr, opt.check.dc, opt.check.tag);
+    res = opt.res[tier];
+  } else {
+    res = opt.res;
+  }
+  if (!res) res = opt.res.success || opt.res;
+  let eff = res.eff;
+  if (Array.isArray(eff)) eff = pick(eff);
+  applyEff(eff);
+
+  let text = '<p>' + res.text + '</p>';
+  if (eff){
+    const notes = [];
+    if (eff.gold) notes.push('金币 ' + fmtSigned(eff.gold));
+    if (eff.hp) notes.push('生命 ' + fmtSigned(eff.hp));
+    if (eff.hpPct) notes.push('生命百分比恢复');
+    if (eff.maxHp) notes.push('生命上限 ' + fmtSigned(eff.maxHp));
+    if (eff.atkBonus) notes.push('攻击力 ' + fmtSigned(eff.atkBonus));
+    if (eff.attr) notes.push('属性提升');
+    if (eff.torches) notes.push('火把 ' + fmtSigned(eff.torches));
+    if (eff.luck) notes.push('幸运 ' + fmtSigned(eff.luck));
+    if (eff.item) notes.push('获得：' + getItemDef(eff.item).name);
+    if (eff.trait) notes.push('获得词条：' + TRAITS[eff.trait].name);
+    if (notes.length) text += '<p class="sys">' + notes.join('　') + '</p>';
+  }
+
+  if (RUN.hp <= 0){ return die('你倒下了。'); }
+
+  if (eff && eff.combat){
+    const eid = eff.combat;
+    setScene(text, [{label:'迎战', cls:'danger', fn: () => startCombat(eid)}]);
+    return;
+  }
+  setScene(text, [{label:'继续', cls:'primary', fn: afterNode}]);
+}
+
+function startCombat(id){
+  const e = ENEMIES[id];
+  if (!e) return afterNode();
+  
+  const known = !!META.bestiary[id];
+  let mult = 1;
+  if (e.layer) mult = 1 + (RUN.floor - 1) * 0.1;
+  else mult = 1 + (RUN.floor - 1) * 0.2;
+  
+  const scaledHp = Math.floor(e.hp * mult);
+  const scaledAtkMin = Math.floor(e.atk[0] * mult);
+  const scaledAtkMax = Math.floor(e.atk[1] * mult);
+  
+  RUN.combat = { 
+    id: id, 
+    hp: scaledHp, 
+    maxHp: scaledHp, 
+    known: known, 
+    round: 1,
+    atk: [scaledAtkMin, scaledAtkMax]
+  };
+  META.bestiary[id] = { seen:true };
+  saveMeta();
+  
+  let prefix = '你遭遇了什么东西。';
+  if (hasTrait('flame') && hasTrait('fire_mastery')) {
+    let burn = 3 + RUN.floor;
+    RUN.combat.hp -= burn;
+    prefix = '你用火油泼洒，火焰瞬间吞噬了它！（造成 ' + burn + ' 点开局伤害）';
+    if (RUN.combat.hp <= 0) return killEnemy(prefix);
+  }
+  
+  showCombat(prefix);
+}
+function showCombat(prefix){
+  const cb = RUN.combat;
+  const e = ENEMIES[cb.id];
+  const bar = '<span class="sys">（' + cb.hp + '/' + cb.maxHp + '）</span>';
+  let name = cb.known ? '<b>' + e.name + '</b>' : '未名的东西';
+  let html = '<p>' + (prefix || '') + '</p>';
+  html += '<p>' + name + bar + '<br>' + e.desc + '</p>';
+  if (cb.known && e.info) html += '<p class="sys">情报：' + e.info + '</p>';
+  else html += '<p class="sys">你从未见过这种东西。</p>';
+  html += '<p class="sys">火把 ' + RUN.torches + ' ｜ 生命 ' + RUN.hp + '/' + RUN.maxHp + (RUN.shield?' (护盾'+RUN.shield+')':'') + '</p>';
+
+  const opts = [];
+  
+  if (hasTrait('arrogance') && cb.round === 1) {
+    html += '<p class="em">你的傲慢让你不屑于先出手，第一回合只能防守！</p>';
+  } else {
+    opts.push({label:'挥击', cls:'danger', fn:() => playerAttack()});
+    
+    let subName = RUN.subclass ? ' ('+getSubclassData().name+')' : '';
+    if (RUN.cls === 'warrior') opts.push({label:'舍生一击'+subName, cls:'danger', fn:() => warriorSkill()});
+    if (RUN.cls === 'rogue') opts.push({label:'连斩'+subName, cls:'danger', fn:() => rogueSkill()});
+    if (RUN.cls === 'scholar') opts.push({label:'祈祷'+subName, fn:() => scholarSkill()});
+  }
+
+  opts.push({label:'观察', fn:() => observeEnemy()});
+  opts.push({label:'用物品', fn:() => openBagPanel()});
+  opts.push({label:'逃跑', fn:() => flee()});
+  setScene(html, opts);
+}
+function playerAttack(){
+  const cb = RUN.combat;
+  const e = ENEMIES[cb.id];
+  const wIt = getWeaponObj();
+  const wId = wIt ? wIt.id : null;
+  const w = wId ? ITEMS[wId] : {dmg:[1,3], name:'拳头'};
+  
+  let dmgMin = w.dmg[0], dmgMax = w.dmg[1];
+  if (wIt && wIt.customDmg) {
+    dmgMin += wIt.customDmg;
+    dmgMax += wIt.customDmg;
+  }
+  
+  const useStr = RUN.attrs.str >= RUN.attrs.dex;
+  const attr = useStr ? 'str' : 'dex';
+  const roll = d20();
+  const pen = getTraitPenalty();
+  let bonus = getMod(RUN.attrs[attr]) + (pen[attr]||0);
+  
+  const cls = CLASSES.find(c=>c.id === RUN.cls);
+  if (cls.tagBonus.combat) bonus += cls.tagBonus.combat;
+  
+  if (hasTrait('keen')) bonus += TRAITS.keen.atkCheck;
+  if (hasTrait('gambler')) bonus += 5;
+  if (hasTrait('sniper') && cb.round === 1) bonus += 5;
+  if (hasTrait('berserk') && RUN.hp <= RUN.maxHp * 0.3) bonus += 3;
+  if (RUN.torches <= 0) bonus -= 5;
+  
+  const total = roll + bonus;
+  let text = '';
+  
+  if (hasTrait('gambler') && roll === 1) {
+    let selfDmg = 5;
+    RUN.hp -= selfDmg;
+    text = '你孤注一掷，却失手砍中了自己！受到 ' + selfDmg + ' 点伤害。';
+    if (RUN.hp <= 0) return die('你被自己杀死了。');
+    cb.round++;
+    return showCombat(text);
+  }
+
+  if (roll === 1 || total < e.ac - 4){
+    text = '你挥空了。' + (roll === 1 ? '重心不稳，差点摔倒。' : '');
+  } else if (total < e.ac){
+    text = '你的攻击擦过它，没有造成实质伤害。';
+  } else {
+    let baseDmg = dmgMin + rnd(dmgMax - dmgMin + 1) + (RUN.atkBonus||0) + Math.max(1, getMod(RUN.attrs[attr])) + (pen.atk||0);
+    let extra = '';
+    
+    if (hasTrait('berserk') && RUN.hp <= RUN.maxHp * 0.3) { baseDmg += 2; extra += '（狂暴）'; }
+    if (hasTrait('cursed_power')) {
+      let curses = RUN.traits.filter(t => TRAITS[t].curse || t==='weak'||t==='slow'||t==='blind'||t==='bad_luck').length;
+      if (curses > 0) { baseDmg += curses * 2; extra += '（诅咒之力）'; }
+    }
+    if (hasTrait('blood_pact')) { baseDmg += 3; extra += '（血契）'; }
+    
+    let isFire = false;
+    if (e.vuln === 'fire' && hasTrait('flame')){
+      baseDmg *= 2; extra += '（火焰克制·翻倍）'; isFire = true;
+    }
+    if (isFire && hasTrait('fire_mastery')) { baseDmg += 3; extra += '（火焰精通）'; }
+    if (isFire && hasTrait('blue_flame')) { baseDmg += 1; extra += '（蓝焰）'; }
+    
+    if (e.resist === 'physical') {
+      baseDmg = Math.floor(baseDmg * 0.5);
+      extra += '（物理抗性·减半）';
+    }
+    
+    if (hasTrait('executioner') && cb.hp < cb.maxHp * 0.2) {
+      baseDmg *= 2; extra += '（处决）';
+    }
+    
+    if (RUN.cls === 'rogue' && hasTrait('rogue_fatal') && roll === 20) {
+      baseDmg *= 3; extra += '（致命一击！）';
+    }
+    
+    if (hasTrait('glass_cannon')) { baseDmg *= 2; extra += '（玻璃大炮）'; }
+    
+    baseDmg = Math.max(1, Math.floor(baseDmg));
+    cb.hp -= baseDmg;
+    text = '你的' + w.name + '命中，造成 ' + baseDmg + ' 点伤害。' + extra;
+    
+    if (hasTrait('lifesteal')) {
+      let heal = 1;
+      if (RUN.hp + heal > RUN.maxHp && hasTrait('vampire')) {
+        let overflow = (RUN.hp + heal) - RUN.maxHp;
+        RUN.shield = (RUN.shield||0) + overflow;
+        RUN.hp = RUN.maxHp;
+        text += ' (吸血鬼溢出转化为护盾)';
+      } else {
+        RUN.hp = clamp(RUN.hp + heal, 0, RUN.maxHp);
+        text += ' (回复1点生命)';
+      }
+    }
+  }
+  if (cb.hp <= 0) return killEnemy(text);
+
+  let ed = cb.atk[0] + rnd(cb.atk[1] - cb.atk[0] + 1);
+  let def = getDef();
+  
+  if (RUN.cls === 'warrior' && hasTrait('warrior_unyielding') && RUN.hp <= RUN.maxHp * 0.3) {
+    def += 5;
+    text += '（不屈之躯：防御+5）';
+  }
+  
+  if (hasTrait('dodge')) ed = Math.max(1, ed - 1);
+  let real = Math.max(1, ed - def);
+  if (pen.dmgTaken) real += pen.dmgTaken;
+  
+  if (hasTrait('glass_cannon')) { real *= 2; text += '（玻璃大炮反噬）'; }
+  
+  if (RUN.shield > 0) {
+    if (RUN.shield >= real) {
+      RUN.shield -= real;
+      text += ' 护盾为你抵挡了 ' + real + ' 点伤害。';
+      real = 0;
+    } else {
+      real -= RUN.shield;
+      text += ' 护盾破碎，你受到 ' + real + ' 点伤害。';
+      RUN.shield = 0;
+      if (hasTrait('paladin')) {
+        cb.hp -= 10;
+        text += '（圣骑士：护盾破裂，圣光对敌人造成 10 点伤害）';
+        if (cb.hp <= 0) return killEnemy(text);
+      }
+    }
+  } else {
+    text += ' 它反击了，你受到 ' + real + ' 点伤害。';
+  }
+  
+  RUN.hp -= real;
+  
+  if (hasTrait('thorn')){
+    let reflect = 2;
+    cb.hp -= reflect;
+    text += '（荆棘反弹 ' + reflect + ' 点）';
+    if (hasTrait('vamp')) {
+      let heal = reflect;
+      if (RUN.hp + heal > RUN.maxHp && hasTrait('vampire')) {
+        RUN.shield = (RUN.shield||0) + ((RUN.hp + heal) - RUN.maxHp);
+        RUN.hp = RUN.maxHp;
+      } else {
+        RUN.hp = clamp(RUN.hp + heal, 0, RUN.maxHp);
+      }
+      text += '（吸血 +' + reflect + '）';
+    }
+    if (cb.hp <= 0) return killEnemy(text);
+  }
+  if (RUN.hp <= 0) return die('你被' + (cb.known ? e.name : '那东西') + '杀死了。');
+  cb.round++;
+  showCombat(text);
+}
+
+function warriorSkill(){
+  const cb = RUN.combat;
+  const e = ENEMIES[cb.id];
+  const wIt = getWeaponObj();
+  const w = wIt ? ITEMS[wIt.id] : {dmg:[1,3], name:'拳头'};
+  
+  let selfDmgPct = 0.15;
+  let dmgMult = 2.5;
+  let healPct = 0;
+  
+  if (RUN.subclass === 'fire_warrior') {
+    selfDmgPct = 0.1;
+    dmgMult = 2.8;
+  } else if (RUN.subclass === 'blood_warrior') {
+    selfDmgPct = 0.1;
+    dmgMult = 2.5;
+  } else if (RUN.subclass === 'berserker') {
+    selfDmgPct = 0.3;
+    dmgMult = 3.5;
+  } else if (RUN.subclass === 'paladin_sub') {
+    selfDmgPct = 0;
+    healPct = 0.1;
+  }
+  
+  let selfDmg = Math.floor(RUN.maxHp * selfDmgPct);
+  if (selfDmg > 0) {
+    RUN.hp -= selfDmg;
+    let text = '你怒吼一声，燃烧生命挥出重击！扣除 ' + selfDmg + ' 点生命。';
+    if (RUN.hp <= 0) return die('你因燃烧生命过度而倒下了。');
+    showCombatText(text, dmgMult, healPct);
+  } else {
+    showCombatText('你高举武器，圣光汇聚，挥出神圣一击！', dmgMult, healPct);
+  }
+  
+  function showCombatText(pref, mult, hpct) {
+    let dmgMin = w.dmg[0] + (wIt.customDmg||0);
+    let dmgMax = w.dmg[1] + (wIt.customDmg||0);
+    const useStr = RUN.attrs.str >= RUN.attrs.dex;
+    const attr = useStr ? 'str' : 'dex';
+    const roll = d20();
+    const pen = getTraitPenalty();
+    let bonus = getMod(RUN.attrs[attr]) + (pen[attr]||0) + 1;
+    if (hasTrait('keen')) bonus += TRAITS.keen.atkCheck;
+    if (RUN.torches <= 0) bonus -= 5;
+    
+    const total = roll + bonus;
+    let text = pref;
+    if (roll === 1 || total < e.ac - 4){
+      text += ' 但你挥空了。';
+    } else if (total < e.ac){
+      text += ' 你的攻击擦过它。';
+    } else {
+      let baseDmg = dmgMin + rnd(dmgMax - dmgMin + 1) + (RUN.atkBonus||0) + Math.max(1, getMod(RUN.attrs[attr])) + (pen.atk||0);
+      baseDmg = Math.floor(baseDmg * mult);
+      
+      if (e.vuln === 'fire' && hasTrait('flame')) { baseDmg *= 2; text += '（火焰附魔）'; }
+      if (hasTrait('glass_cannon')) { baseDmg *= 2; text += '（玻璃大炮）'; }
+      baseDmg = Math.max(1, baseDmg);
+      
+      cb.hp -= baseDmg;
+      text += ' 命中！造成 ' + baseDmg + ' 点毁灭伤害。';
+      
+      if (RUN.subclass === 'blood_warrior') {
+        let heal = Math.floor(baseDmg * 0.3);
+        RUN.hp = clamp(RUN.hp + heal, 0, RUN.maxHp);
+        text += ' 嗜血：回复 ' + heal + ' 点生命。';
+      }
+    }
+    
+    if (hpct > 0) {
+      let heal = Math.floor(RUN.maxHp * hpct);
+      RUN.hp = clamp(RUN.hp + heal, 0, RUN.maxHp);
+      text += ' 圣光治愈了你 ' + heal + ' 点生命。';
+    }
+    
+    if (cb.hp <= 0) return killEnemy(text);
+    
+    let ed = cb.atk[0] + rnd(cb.atk[1] - cb.atk[0] + 1);
+    let def = getDef();
+    if (RUN.cls === 'warrior' && hasTrait('warrior_unyielding') && RUN.hp <= RUN.maxHp * 0.3) def += 5;
+    let real = Math.max(1, ed - def);
+    if (RUN.shield > 0) {
+      if (RUN.shield >= real) { RUN.shield -= real; text += ' 护盾抵挡了反击。'; real = 0; }
+      else { real -= RUN.shield; RUN.shield = 0; }
+    }
+    RUN.hp -= real;
+    if (real > 0) text += ' 它反击造成 ' + real + ' 点伤害。';
+    
+    if (RUN.hp <= 0) return die('你倒下了。');
+    cb.round++;
+    showCombat(text);
+  }
+}
+
+function rogueSkill(){
+  const cb = RUN.combat;
+  const e = ENEMIES[cb.id];
+  const wIt = getWeaponObj();
+  const w = wIt ? ITEMS[wIt.id] : {dmg:[1,3], name:'拳头'};
+  
+  let hitCount = 2;
+  let dmgMult = 1;
+  
+  if (RUN.subclass === 'assassin') {
+    hitCount = 3;
+    dmgMult = 0.7;
+  }
+  
+  let dmgMin = Math.floor((w.dmg[0] + (wIt.customDmg||0)) * dmgMult);
+  let dmgMax = Math.floor((w.dmg[1] + (wIt.customDmg||0)) * dmgMult);
+  
+  const useStr = RUN.attrs.str >= RUN.attrs.dex;
+  const attr = useStr ? 'str' : 'dex';
+  const pen = getTraitPenalty();
+  let bonusBase = getMod(RUN.attrs[attr]) + (pen[attr]||0);
+  if (hasTrait('keen')) bonusBase += TRAITS.keen.atkCheck;
+  if (RUN.torches <= 0) bonusBase -= 5;
+  
+  let text = '你化作一道残影，连续挥出' + hitCount + '次攻击！';
+  let hitAll = true;
+  
+  for(let i=0; i<hitCount; i++) {
+    const roll = d20();
+    const total = roll + bonusBase;
+    if (roll === 1 || total < e.ac - 4) {
+      text += '<br>第' + (i+1) + '击：挥空了。';
+      hitAll = false;
+    } else if (total < e.ac) {
+      text += '<br>第' + (i+1) + '击：擦过敌人。';
+      hitAll = false;
+    } else {
+      let baseDmg = dmgMin + rnd(dmgMax - dmgMin + 1) + (RUN.atkBonus||0) + Math.max(1, getMod(RUN.attrs[attr])) + (pen.atk||0);
+      if (e.vuln === 'fire' && hasTrait('flame')) baseDmg *= 2;
+      if (RUN.cls === 'rogue' && hasTrait('rogue_fatal') && roll === 20) baseDmg *= 3;
+      if (hasTrait('glass_cannon')) baseDmg *= 2;
+      baseDmg = Math.max(1, Math.floor(baseDmg));
+      cb.hp -= baseDmg;
+      text += '<br>第' + (i+1) + '击：命中！造成 ' + baseDmg + ' 点伤害。';
+    }
+    if (cb.hp <= 0) break;
+  }
+  
+  if (RUN.subclass === 'shadow' && hitAll) {
+    RUN.shield = (RUN.shield||0) + 5;
+    text += '<br>暗影舞者：身法灵动，获得 5 点护盾。';
+  }
+  
+  if (cb.hp <= 0) return killEnemy(text);
+  
+  let ed = cb.atk[0] + rnd(cb.atk[1] - cb.atk[0] + 1);
+  let def = getDef();
+  let real = Math.max(1, ed - def);
+  if (RUN.shield > 0) {
+    if (RUN.shield >= real) { RUN.shield -= real; text += ' 护盾抵挡了反击。'; real = 0; }
+    else { real -= RUN.shield; RUN.shield = 0; }
+  }
+  RUN.hp -= real;
+  if (real > 0) text += ' 它反击造成 ' + real + ' 点伤害。';
+  
+  if (RUN.hp <= 0) return die('你倒下了。');
+  cb.round++;
+  showCombat(text);
+}
+
+function scholarSkill(){
+  const cb = RUN.combat;
+  const e = ENEMIES[cb.id];
+  
+  let text = '';
+  
+  if (RUN.subclass === 'elementalist') {
+    let dmg = 10 + RUN.floor * 3;
+    if (hasTrait('flame')) dmg += 5;
+    cb.hp -= dmg;
+    text = '你召唤出烈焰风暴，对敌人造成了 ' + dmg + ' 点火焰伤害！';
+    if (cb.hp <= 0) return killEnemy(text);
+  } else if (RUN.subclass === 'necromancer') {
+    let dmg = 5 + RUN.floor;
+    cb.hp -= dmg;
+    let heal = Math.floor(dmg * 1.5);
+    RUN.hp = clamp(RUN.hp + heal, 0, RUN.maxHp);
+    text = '你汲取了敌人的生命，造成 ' + dmg + ' 点伤害，并回复了 ' + heal + ' 点生命。';
+    if (cb.hp <= 0) return killEnemy(text);
+  } else {
+    let healPct = 0.1 + (Math.random() * 0.2);
+    let heal = Math.floor(RUN.maxHp * healPct);
+    RUN.hp = clamp(RUN.hp + heal, 0, RUN.maxHp);
+    text = '你默念咒语，祈祷光芒降临，回复了 ' + heal + ' 点生命。';
+  }
+  
+  let ed = cb.atk[0] + rnd(cb.atk[1] - cb.atk[0] + 1);
+  let def = getDef();
+  let real = Math.max(1, ed - def);
+  if (RUN.shield > 0) {
+    if (RUN.shield >= real) { RUN.shield -= real; text += ' 护盾抵挡了反击。'; real = 0; }
+    else { real -= RUN.shield; RUN.shield = 0; }
+  }
+  RUN.hp -= real;
+  if (real > 0) text += ' 它趁机攻击，造成 ' + real + ' 点伤害。';
+  
+  if (RUN.hp <= 0) return die('你倒下了。');
+  cb.round++;
+  showCombat(text);
+}
+
+function killEnemy(prefix){
+  const cb = RUN.combat;
+  const e = ENEMIES[cb.id];
+  let text = (prefix ? prefix + ' ' : '') + '它散架了。';
+  
+  let baseGold = 5 + rnd(8) + RUN.floor * 2 + (e.elite ? 10 : 0) + (e.boss ? 30 : 0) + (e.miniboss ? 20 : 0);
+  let expGain = 10 + (e.elite ? 15 : 0) + (e.miniboss ? 30 : 0) + (e.is_hidden ? 50 : 0);
+  
+  RUN.floorFarms = (RUN.floorFarms || 0) + 1;
+  let penalty = 1;
+  if (RUN.floorFarms > 35) penalty = 0;
+  else if (RUN.floorFarms > 25) penalty = 0.2;
+  else if (RUN.floorFarms > 15) penalty = 0.5;
+  
+  let gold = Math.floor(baseGold * penalty);
+  expGain = Math.floor(expGain * penalty);
+  
+  RUN.gold += gold;
+  text += '你从它身上搜到 ' + gold + ' 枚金币。';
+  
+  if (hasTrait('vamp')){
+    let heal = hasTrait('vamp_lord') ? 5 : 3;
+    if (hasTrait('vamp_lord') && (e.elite || e.miniboss)) {
+      RUN.hp = RUN.maxHp;
+      text += '（血族领主：生命回满）';
+    } else {
+      if (RUN.hp + heal > RUN.maxHp && hasTrait('vampire')) {
+        RUN.shield = (RUN.shield||0) + ((RUN.hp + heal) - RUN.maxHp);
+        RUN.hp = RUN.maxHp;
+        text += '（吸血鬼溢出转化为护盾）';
+      } else {
+        RUN.hp = clamp(RUN.hp + heal, 0, RUN.maxHp); 
+        text += '（吸血回复 ' + heal + ' 点）'; 
+      }
+    }
+  }
+  
+  if (cb.is_fire_trial) {
+    if (RUN.inv.some(i=>i.id==='fire_sword') || hasTrait('blue_flame')) {
+      text += '<br><span class="good">火精灵化作一团火种融入了你的体内。你顿悟了火焰的极致！</span>';
+      if (RUN.cls === 'warrior') {
+        RUN.subclass = 'fire_warrior';
+        RUN.traits.push('flame', 'fire_mastery');
+      }
+    } else {
+      text += '<br>火精灵消散了，你感到一阵温暖，但没有发生质变。';
+    }
+  }
+  
+  RUN.combat = null;
+  
+  if (e.boss){
+    META.wins++;
+    saveMeta();
+    return winGame(text);
+  }
+  
+  if (e.is_hidden) {
+    addItem('dragon_heart');
+    text += '<br>深渊魔龙陨落了。你挖出了它还在跳动的<b>龙之心</b>，这似乎是开启某种终极结局的钥匙。';
+  }
+  
+  RUN.exp += expGain;
+  if (expGain > 0) text += ' 获得 ' + expGain + ' 点经验。';
+  
+  let triggerTraitChoice = false;
+  if (RUN.exp >= RUN.nextExp) {
+    RUN.exp -= RUN.nextExp;
+    RUN.level++;
+    RUN.nextExp = Math.floor(RUN.nextExp * 1.5);
+    RUN.maxHp += 6;
+    RUN.hp = RUN.maxHp;
+    RUN.attrs.str += 1; RUN.attrs.dex += 1; RUN.attrs.int += 1; RUN.attrs.wis += 1;
+    text += '<br><span class="good">你升级了！等级 Lv.' + RUN.level + '（生命上限+6，全属性+1，生命已回满）</span>';
+    triggerTraitChoice = true;
+  }
+  
+  if (e.elite || e.miniboss || e.is_hidden) {
+    triggerTraitChoice = true;
+  }
+  
+  if (e.miniboss) {
+    const it1 = pick(['bomb', 'whetstone', 'amulet', 'scroll_identify', 'rune_stone', 'fire_stone']);
+    addItem(it1);
+    text += '<br>你在它守卫的宝库里找到了：<b>' + ITEMS[it1].name + '</b>。';
+  }
+  
+  if (triggerTraitChoice) {
+    if (e.miniboss) {
+      RUN.floor++;
+      RUN.step = 0;
+      RUN.floorFarms = 0;
+      if (hasTrait('torchbearer')) RUN.torches += TRAITS.torchbearer.floorTorch;
+      if (hasTrait('cursed')) RUN.torches = Math.max(0, RUN.torches - 1);
+      if (hasTrait('shield')) RUN.shield = (RUN.shield||0) + TRAITS.shield.shield;
+      
+      if (RUN.floor > 5) {
+        showTraitChoice(text, () => { bossIntro(); });
+      } else {
+        RUN.nodes = rollNodes();
+        showTraitChoice(text, () => { renderFloor(); });
+      }
+    } else {
+      showTraitChoice(text, () => { afterNode(); });
+    }
+    return;
+  }
+
+  if (Math.random() < 0.28 && penalty > 0){ 
+    const it = pick(['bandage','torch_item','potion3','sausage','cheese','tomato','bread']); 
+    addItem(it); 
+    text += ' 还有：' + getItemDef(it).name; 
+  }
+  
+  if (e.miniboss) {
+    RUN.floor++;
+    RUN.step = 0;
+    RUN.floorFarms = 0;
+    if (hasTrait('torchbearer')) RUN.torches += TRAITS.torchbearer.floorTorch;
+    if (hasTrait('cursed')) RUN.torches = Math.max(0, RUN.torches - 1);
+    if (hasTrait('shield')) RUN.shield = (RUN.shield||0) + TRAITS.shield.shield;
+    
+    if (RUN.floor > 5) {
+      setScene('<p>' + text + '</p>', [{label:'挑战骸骨之王', cls:'primary', fn: () => bossIntro()}]);
+    } else {
+      RUN.nodes = rollNodes();
+      setScene('<p>' + text + '</p>', [{label:'进入第 '+RUN.floor+' 层', cls:'primary', fn: () => renderFloor()}]);
+    }
+  } else {
+    setScene('<p>' + text + '</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+  }
+}
+function observeEnemy(){
+  const cb = RUN.combat;
+  const e = ENEMIES[cb.id];
+  const roll = d20();
+  const pen = getTraitPenalty();
+  let bonus = getMod(RUN.attrs.wis) + (pen.wis||0);
+  if (RUN.torches <= 0) bonus -= 5;
+  const total = roll + bonus;
+  RUN.lastDice = {
+    bad: total < 12,
+    html: '<span class="big">感知检定 · ' + (total >= 12 ? '成功' : '失败') + '</span>' +
+      'd20(' + roll + ') +' + getMod(RUN.attrs.wis) + ' = ' + total + ' vs DC 12'
+  };
+  if (total >= 12){
+    cb.known = true;
+    META.bestiary[cb.id] = { seen:true };
+    saveMeta();
+    showCombat('你看出了一些门道：' + (e.info || '它没有明显弱点。'));
+  } else {
+    showCombat('你盯着它看了几秒，什么也没看出来。');
+  }
+}
+function flee(){
+  const roll = d20();
+  const pen = getTraitPenalty();
+  let bonus = getMod(RUN.attrs.dex) + (pen.dex||0);
+  if (hasTrait('swift')) bonus += TRAITS.swift.flee;
+  const total = roll + bonus;
+  const dc = 12;
+  RUN.lastDice = {
+    bad: total < dc,
+    html: '<span class="big">敏捷检定 · ' + (total >= dc ? '成功' : '失败') + '</span>' +
+      'd20(' + roll + ') +' + getMod(RUN.attrs.dex) + ' = ' + total + ' vs DC ' + dc
+  };
+  if (total >= dc){
+    RUN.combat = null;
+    setScene('<p>你转身就跑，脚步声在通道里回荡了很久。</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+  } else {
+    const cb = RUN.combat;
+    let dmg = Math.max(1, cb.atk[0] + rnd(cb.atk[1] - cb.atk[0] + 1) - getDef());
+    if (hasTrait('glass_cannon')) dmg *= 2;
+    RUN.hp -= dmg;
+    if (RUN.hp <= 0) return die('你没能跑掉。');
+    showCombat('你没跑掉，后背挨了一下，受到 ' + dmg + ' 点伤害。');
+  }
+}
+
+function showMerchant(){
+  if (!RUN.merchant) {
+    RUN.merchant = {
+      items: shuffle([
+        {id:'bandage', price:12},
+        {id:'torch_item', price:8},
+        {id:'potion4', price:18},
+        {id:'scroll_identify', price:15},
+        {id:'bomb', price:25},
+        {id:'whetstone', price:30},
+        {id:'crowbar', price:20},
+        {id:'rune_stone', price:40}
+      ]).slice(0,4),
+      traits: shuffle(Object.keys(TRAITS).filter(t => !hasTrait(t))).slice(0, 3),
+      refreshCost: 20,
+      removeCost: 30
+    };
+  }
+  openMerchantPanel();
+}
+
+function openMerchantPanel() {
+  const m = RUN.merchant;
+  let h = '<h3>神秘商人</h3><p class="sys">金币: ' + RUN.gold + '</p>';
+  
+  h += '<h4>商品</h4>';
+  m.items.forEach((s, i) => {
+    const d = getItemDef(s.id);
+    let price = s.price;
+    if (hasTrait('greed')) price = Math.floor(price * 1.5);
+    h += `<div class="row"><div class="info"><b>${d.name}</b><div class="sys">${d.desc}</div></div>
+          <button data-buyitem="${i}">买 (${price} 金币)</button></div>`;
+  });
+  
+  h += '<h4>词条</h4>';
+  m.traits.forEach((t, i) => {
+    const d = TRAITS[t];
+    let price = 40;
+    if (hasTrait('greed')) price = Math.floor(price * 1.5);
+    h += `<div class="row"><div class="info"><b>${d.name}</b><div class="sys">${d.desc}</div></div>
+          <button data-buytrait="${i}">买 (${price} 金币)</button></div>`;
+  });
+  
+  h += '<h4>服务</h4>';
+  h += `<div class="row"><div class="info"><b>刷新商品</b><div class="sys">重新生成商品和词条。</div></div>
+        <button data-refresh="1">刷新 (${m.refreshCost} 金币)</button></div>`;
+  
+  h += `<div class="row"><div class="info"><b>去除负面词条</b><div class="sys">移除一个负面词条。</div></div>
+        <button data-remove="1">去词条 (${m.removeCost} 金币)</button></div>`;
+        
+  h += `<div class="row"><div class="info"><b>卖掉闲置物品</b><div class="sys">半价出售背包里的物品。</div></div>
+        <button data-sell="1">打开背包</button></div>`;
+
+  h += '<button class="bigbtn warn" id="leaveMerchantBtn">离开</button>';
+  openPanel(h);
+  
+  const panel = document.getElementById('panel');
+  panel.querySelectorAll('[data-buyitem]').forEach(btn => {
+    btn.onclick = () => {
+      const idx = +btn.getAttribute('data-buyitem');
+      const s = m.items[idx];
+      let price = s.price;
+      if (hasTrait('greed')) price = Math.floor(price * 1.5);
+      if (RUN.gold < price) return showModal('提示', '金币不足！');
+      RUN.gold -= price;
+      addItem(s.id);
+      m.items.splice(idx, 1);
+      openMerchantPanel();
+    };
+  });
+  
+  panel.querySelectorAll('[data-buytrait]').forEach(btn => {
+    btn.onclick = () => {
+      const idx = +btn.getAttribute('data-buytrait');
+      const t = m.traits[idx];
+      let price = 40;
+      if (hasTrait('greed')) price = Math.floor(price * 1.5);
+      if (RUN.gold < price) return showModal('提示', '金币不足！');
+      RUN.gold -= price;
+      applyEff({trait: t});
+      m.traits.splice(idx, 1);
+      openMerchantPanel();
+    };
+  });
+  
+  panel.querySelector('[data-refresh]').onclick = () => {
+    if (RUN.gold < m.refreshCost) return showModal('提示', '金币不足！');
+    RUN.gold -= m.refreshCost;
+    m.refreshCost += 10;
+    m.items = shuffle([
+      {id:'bandage', price:12}, {id:'torch_item', price:8}, {id:'potion4', price:18},
+      {id:'scroll_identify', price:15}, {id:'bomb', price:25}, {id:'whetstone', price:30},
+      {id:'crowbar', price:20}, {id:'rune_stone', price:40}
+    ]).slice(0,4);
+    m.traits = shuffle(Object.keys(TRAITS).filter(t => !hasTrait(t))).slice(0, 3);
+    openMerchantPanel();
+  };
+  
+  panel.querySelector('[data-remove]').onclick = () => {
+    if (RUN.gold < m.removeCost) return showModal('提示', '金币不足！');
+    const negTraits = RUN.traits.filter(t => ['weak','slow','blind','bad_luck','cursed','paranoia','wound','broken_pocket','gluttony','arrogance'].includes(t));
+    if (negTraits.length === 0) return showModal('提示', '你没有负面词条！');
+    
+    let listH = '<h3>选择要去除的负面词条</h3>';
+    negTraits.forEach(t => {
+      const d = TRAITS[t];
+      listH += `<div class="row"><div class="info"><b>${d.name}</b><div class="sys">${d.desc}</div></div>
+                <button data-rmt="${t}">移除</button></div>`;
+    });
+    listH += '<button class="bigbtn" id="backMerchantBtn">返回</button>';
+    openPanel(listH);
+    
+    document.getElementById('backMerchantBtn').onclick = openMerchantPanel;
+    document.getElementById('panel').querySelectorAll('[data-rmt]').forEach(b => {
+      b.onclick = () => {
+        const t = b.getAttribute('data-rmt');
+        RUN.gold -= m.removeCost;
+        m.removeCost += 20;
+        RUN.traits = RUN.traits.filter(x => x !== t);
+        openMerchantPanel();
+      };
+    });
+  };
+  
+  panel.querySelector('[data-sell]').onclick = () => {
+    let listH = '<h3>选择要出售的物品</h3>';
+    const counts = {};
+    RUN.inv.forEach((it, i) => {
+      if (!counts[it.id]) counts[it.id] = { count: 0, originalIndex: i, item: it };
+      counts[it.id].count++;
+    });
+    
+    for (const id in counts) {
+      if (isPotion(id)) continue; 
+      const d = getItemDef(id);
+      const sellPrice = 5 + RUN.floor * 2;
+      listH += `<div class="row"><div class="info"><b>${d.name} x${counts[id].count}</b><div class="sys">${d.desc}</div></div>
+                <button data-sellid="${id}">卖 (${sellPrice} 金币)</button></div>`;
+    }
+    listH += '<button class="bigbtn" id="backMerchantBtn">返回</button>';
+    openPanel(listH);
+    
+    document.getElementById('backMerchantBtn').onclick = openMerchantPanel;
+    document.getElementById('panel').querySelectorAll('[data-sellid]').forEach(b => {
+      b.onclick = () => {
+        const sellId = b.getAttribute('data-sellid');
+        const idx = RUN.inv.findIndex(it => it.id === sellId);
+        if (idx >= 0) {
+          RUN.inv.splice(idx, 1);
+          RUN.gold += 5 + RUN.floor * 2;
+          openMerchantPanel();
+        }
+      };
+    });
+  };
+  
+  document.getElementById('leaveMerchantBtn').onclick = () => {
+    RUN.merchant = null;
+    closePanel();
+    afterNode();
+  };
+}
+
+function showShrine(){
+  const opts = [
+    {label:'献上金币（10 金币）', cls:'primary', fn: () => {
+      if (RUN.gold < 10) {
+        setScene('<p>你摸索着口袋，连一枚金币也没有。神像的眼睛似乎暗了下去。</p>', [{label:'离开', fn: afterNode}]);
+        return;
+      }
+      RUN.gold -= 10;
+      const pool = ['hp20', 'torch5', 'luck2', 'trait'];
+      const reward = pick(pool);
+      let msg = '';
+      if (reward === 'hp20') { RUN.hp = clamp(RUN.hp + 15, 0, RUN.maxHp); msg = '一道暖流涌遍全身，伤口奇迹般地愈合了。（生命 +15）'; }
+      if (reward === 'torch5') { RUN.torches += 5; msg = '祭坛下凭空出现了几捆干燥的木柴。（火把 +5）'; }
+      if (reward === 'luck2') { RUN.luck += 2; msg = '你感到一种莫名的轻松感，似乎运气变好了。（幸运 +2）'; }
+      if (reward === 'trait') {
+        const avail = Object.keys(TRAITS).filter(t => !hasTrait(t));
+        if(avail.length > 0){
+          const t = pick(avail);
+          applyEff({trait: t});
+          msg = '神像的掌心裂开，一道光没入你的体内。你获得了词条：<b>' + TRAITS[t].name + '</b>。';
+        } else {
+          RUN.gold += 20;
+          msg = '你已拥有了所有的祝福。神像把金币退给了你，并多给了一些。（金币 +20）';
+        }
+      }
+      setScene('<p>你放下金币。神像吞没了它们，发出轻微的咀嚼声。</p><p class="good">' + msg + '</p>', [{label:'离开', cls:'primary', fn: afterNode}]);
+    }},
+    {label:'滴血祭献（扣除 5 生命）', cls:'danger', fn: () => {
+      if (RUN.hp <= 5) {
+        setScene('<p>你太虚弱了。如果在这里放血，你会直接死掉。</p>', [{label:'离开', fn: afterNode}]);
+        return;
+      }
+      RUN.hp -= 5;
+      const avail = Object.keys(TRAITS).filter(t => !hasTrait(t));
+      if (avail.length === 0) {
+        RUN.hp = clamp(RUN.hp + 10, 0, RUN.maxHp);
+        setScene('<p>你划破手掌，鲜血滴落。神像似乎叹了口气，随后一道光治愈了你的伤口。</p><p class="sys">（你已拥有所有词条，生命 +10）</p>', [{label:'离开', cls:'primary', fn: afterNode}]);
+        return;
+      }
+      const t = pick(avail);
+      applyEff({trait: t});
+      setScene('<p>你用匕首划开手掌，暗红的血被石像吸收。你感到一阵刺痛，但也伴随着力量的涌入。</p><p class="good">获得词条：<b>' + TRAITS[t].name + '</b>。</p>', [{label:'离开', cls:'primary', fn: afterNode}]);
+    }},
+    {label:'不理会，离开', fn: afterNode}
+  ];
+  setScene('<p>一座古老的神龛矗立在阴影中。神像没有五官，但你能感觉到它在注视你。它的底座上有干涸的血迹和金币的划痕。</p>', opts);
+}
+
+function hasItemInInventory(id) {
+  return RUN.inv.some(i=>i.id===id);
+}
+function hasPotionNamed(name) {
+  for (const it of RUN.inv) {
+    if (isPotion(it.id)) {
+      const ci = potionColorIndex(it.id);
+      if (RUN.identified[ci] && POTIONS[RUN.potionMap[ci]].name === name) return true;
+    }
+  }
+  return false;
+}
+
+function showBlacksmith(){
+  const wIt = getWeaponObj();
+  const opts = [];
+  
+  if (wIt) {
+    const w = ITEMS[wIt.id];
+    
+    const forgeCost = 20 + (RUN.forgeCount || 0) * 20;
+    opts.push({
+      label: '锻造武器（' + forgeCost + ' 金币）',
+      cls: 'primary',
+      fn: () => {
+        if (RUN.gold < forgeCost) {
+          setScene('<p>老铁匠头也不抬："没钱就别碰我的铁砧。"</p>', [{label:'离开', fn: afterNode}]);
+          return;
+        }
+        RUN.gold -= forgeCost;
+        RUN.forgeCount = (RUN.forgeCount || 0) + 1;
+        wIt.customDmg = (wIt.customDmg || 0) + 2;
+        setScene('<p>铁锤重重落下，火星四溅。你的' + w.name + '变得更加锋利了。</p><p class="sys">武器伤害永久 +2（当前加成：+' + (wIt.customDmg) + '）</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+      }
+    });
+    
+    if (hasPotionNamed('金溶液')) {
+      opts.push({
+        label: '灌注金溶液（消耗1瓶金溶液）',
+        cls: 'danger',
+        fn: () => {
+          let idx = -1;
+          for(let i=0; i<RUN.inv.length; i++) {
+            const it = RUN.inv[i];
+            if (isPotion(it.id)) {
+              const ci = potionColorIndex(it.id);
+              if (RUN.identified[ci] && POTIONS[RUN.potionMap[ci]].name === '金溶液') { idx = i; break; }
+            }
+          }
+          if (idx >= 0) {
+            RUN.inv.splice(idx, 1);
+            wIt.customDmg = (wIt.customDmg || 0) + 2;
+            setScene('<p>铁匠将金溶液倒在你的武器上，发出了奇异的金光。</p><p class="sys">武器伤害永久 +2（当前加成：+' + (wIt.customDmg) + '）</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+          }
+        }
+      });
+    }
+    
+    if (!RUN.boughtEnchant) {
+      opts.push({
+        label: '武器附魔（30 金币）',
+        cls: 'danger',
+        fn: () => {
+          if (RUN.gold < 30) {
+            setScene('<p>老铁匠头也不抬："没钱就别碰我的铁砧。"</p>', [{label:'离开', fn: afterNode}]);
+            return;
+          }
+          RUN.gold -= 30;
+          RUN.boughtEnchant = true;
+          const enchants = ['flame', 'fire_mastery', 'vamp', 'thorn'];
+          const avail = enchants.filter(e => !hasTrait(e));
+          let t = avail.length > 0 ? pick(avail) : 'keen';
+          applyEff({trait: t});
+          setScene('<p>铁匠将一块奇异的矿石嵌入你的武器，光芒闪烁。</p><p class="good">获得词条：<b>' + TRAITS[t].name + '</b>。</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+        }
+      });
+    }
+  }
+  
+  let canForgeFire = (hasTrait('flame') || hasTrait('fire_mastery') || hasItemInInventory('fire_stone'));
+  let canForgeBlood = (hasTrait('vamp') || hasTrait('blood_pact') || hasTrait('lifesteal') || hasTrait('vampire') || hasTrait('vamp_lord'));
+  let canForgeBerserk = (hasTrait('thorn') || hasTrait('heavy') || hasTrait('executioner') || hasTrait('berserk'));
+
+  if (RUN.cls === 'warrior') {
+    if (canForgeFire && wIt && wIt.id !== 'fire_sword') {
+      opts.push({ label: '打造【火纹长剑】（需火焰条件+30金）', cls:'danger', fn: () => {
+        if (RUN.gold < 30) return setScene('<p>金币不足。</p>', [{label:'离开', fn: afterNode}]);
+        RUN.gold -= 30;
+        RUN.inv.splice(RUN.inv.indexOf(wIt), 1);
+        addItem('fire_sword');
+        setScene('<p>铁匠将熊熊烈火封印入剑中，打造出了火纹长剑！</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+      }});
+    }
+    if (canForgeBlood && wIt && wIt.id !== 'blood_sword') {
+      opts.push({ label: '打造【嗜血棱剑】（需吸血条件+30金）', cls:'danger', fn: () => {
+        if (RUN.gold < 30) return setScene('<p>金币不足。</p>', [{label:'离开', fn: afterNode}]);
+        RUN.gold -= 30;
+        RUN.inv.splice(RUN.inv.indexOf(wIt), 1);
+        addItem('blood_sword');
+        setScene('<p>铁匠用鲜血淬火，剑刃发出了诡异的红光。</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+      }});
+    }
+    if (canForgeBerserk && wIt && wIt.id !== 'berserk_axe') {
+      opts.push({ label: '打造【狂战巨斧】（需狂暴条件+30金）', cls:'danger', fn: () => {
+        if (RUN.gold < 30) return setScene('<p>金币不足。</p>', [{label:'离开', fn: afterNode}]);
+        RUN.gold -= 30;
+        RUN.inv.splice(RUN.inv.indexOf(wIt), 1);
+        addItem('berserk_axe');
+        setScene('<p>铁匠将一块巨大的玄铁锤炼成巨斧，沉重得让人难以举起。</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+      }});
+    }
+  } else if (RUN.cls === 'rogue') {
+     if ((hasTrait('alchemist') || hasTrait('vamp')) && wIt && wIt.id !== 'poison_dagger') {
+      opts.push({ label: '打造【剧毒之刃】（需毒素条件+30金）', cls:'danger', fn: () => {
+        if (RUN.gold < 30) return setScene('<p>金币不足。</p>', [{label:'离开', fn: afterNode}]);
+        RUN.gold -= 30;
+        RUN.inv.splice(RUN.inv.indexOf(wIt), 1);
+        addItem('poison_dagger');
+        setScene('<p>铁匠将剧毒涂抹在匕首上，闪烁着幽绿的光。</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+      }});
+    }
+  } else if (RUN.cls === 'scholar') {
+     if ((hasTrait('flame') || hasTrait('fire_mastery')) && wIt && wIt.id !== 'arch_staff') {
+      opts.push({ label: '打造【大法师之杖】（需火焰条件+30金）', cls:'danger', fn: () => {
+        if (RUN.gold < 30) return setScene('<p>金币不足。</p>', [{label:'离开', fn: afterNode}]);
+        RUN.gold -= 30;
+        RUN.inv.splice(RUN.inv.indexOf(wIt), 1);
+        addItem('arch_staff');
+        setScene('<p>铁匠将火焰石镶嵌在法杖顶端，魔力涌动。</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+      }});
+    }
+  }
+  
+  opts.push({label:'离开', fn: afterNode});
+  
+  setScene('<p>一个肌肉虬结的老铁匠正在敲打着一块烧红的铁锭。他身后的架子上摆满了各种兵器。</p><p class="sys">"想升级你的家伙什吗？拿钱来。" 金币 ' + RUN.gold + '</p>', opts);
+}
+
+function showTraitChoice(prefix, callback){
+  const avail = Object.keys(TRAITS).filter(t => !hasTrait(t));
+  
+  if (avail.length === 0) {
+    const gold = 20;
+    RUN.gold += gold;
+    setScene('<p>' + prefix + '</p><p>你在这堆残骸中翻了翻，找到一些金币。你已掌握了所有的战技。</p><p class="sys">金币 +' + gold + '</p>', [{label:'继续', cls:'primary', fn: callback || afterNode}]);
+    return;
+  }
+
+  const choices = shuffle(avail).slice(0, 3);
+  const opts = choices.map(tId => ({
+    label: '<b>' + TRAITS[tId].name + '</b><small>' + TRAITS[tId].desc + '</small>',
+    cls: 'primary',
+    fn: () => {
+      applyEff({trait: tId});
+      const t = TRAITS[tId];
+      
+      let extraText = '';
+      if (t.def) extraText = '防御 +' + t.def;
+      if (t.atkCheck) extraText = '攻击检定 +' + t.atkCheck;
+      if (t.maxHpPenalty) extraText = '生命上限 -' + t.maxHpPenalty;
+      
+      setScene('<p>你从它的残骸中领悟了什么。</p><p class="good">获得词条：<b>' + t.name + '</b> ' + extraText + '</p>', [{label:'继续', cls:'primary', fn: callback || afterNode}]);
+    }
+  }));
+
+  if (choices.length < 3) {
+    opts.push({label:'放弃领悟，搜刮残骸（+15 金币）', fn: () => {
+      RUN.gold += 15;
+      setScene('<p>你放弃了深究它身上的秘密，只搜刮了些许金币。</p>', [{label:'继续', cls:'primary', fn: callback || afterNode}]);
+    }});
+  }
+
+  setScene('<p>' + prefix + '</p>' +
+    '<p>你在它消散的躯体里，看到了几种不同流向的力量。你只能抓住其中一种。</p>', opts);
+}
+
+function showRest(){
+  const opts = [
+    {label:'烤火休息（回复 8 生命）', cls:'primary', fn: () => {
+      RUN.hp = clamp(RUN.hp + 8, 0, RUN.maxHp);
+      setScene('<p>你靠着岩壁坐下，火堆噼啪响。伤口不那么疼了。</p>' +
+        '<p class="sys">生命 +8</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+    }},
+    {label:'添柴（火把 +3）', fn: () => {
+      RUN.torches += 3;
+      setScene('<p>你从火堆里引了三支火把，塞进背包。</p>' +
+        '<p class="sys">火把 +3</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+    }},
+    {label:'听墙里的声音', fn: () => {
+      RUN.luck += 1;
+      setScene('<p>你贴着墙听了很久。墙里有很多人在说话，你听不清，但记住了其中一个词。</p>' +
+        '<p class="sys">幸运 +1</p>', [{label:'继续', cls:'primary', fn: afterNode}]);
+    }},
+    {label:'不做停留', fn: afterNode}
+  ];
+  setScene('<p>一小堆火在通道边燃着，不知道是谁生的。火焰是暖的。</p>', opts);
+}
+
+function getSubclassData() {
+  if (RUN.subclass === 'fire_warrior') return {name:'火纹战士'};
+  if (RUN.subclass === 'blood_warrior') return {name:'嗜血战士'};
+  if (RUN.subclass === 'berserker') return {name:'狂战士'};
+  if (RUN.subclass === 'assassin') return {name:'刺客'};
+  if (RUN.subclass === 'shadow') return {name:'暗影舞者'};
+  if (RUN.subclass === 'elementalist') return {name:'元素使'};
+  if (RUN.subclass === 'necromancer') return {name:'死灵法师'};
+  return null;
+}
+
+function afterNode(){
+  if (RUN.hp <= 0) return die('你倒下了。');
+  
+  if (RUN.step >= 10){
+    RUN.step = 0;
+    if (RUN.floor > 5) return bossIntro();
+    
+    if (hasTrait('torchbearer')) RUN.torches += TRAITS.torchbearer.floorTorch;
+    if (hasTrait('cursed')) RUN.torches = Math.max(0, RUN.torches - 1);
+    if (hasTrait('shield')) RUN.shield = (RUN.shield||0) + TRAITS.shield.shield;
+    
+    return miniBossIntro();
+  }
+  RUN.nodes = rollNodes();
+  renderFloor();
+}
+
+function miniBossIntro(){
+  const mbMap = {
+    1: 'miniboss_1',
+    2: 'miniboss_2',
+    3: 'miniboss_3',
+    4: 'miniboss_4',
+    5: 'miniboss_5'
+  };
+  const mbId = mbMap[RUN.floor] || 'miniboss_1';
+  const mb = ENEMIES[mbId];
+  
+  setScene('<p>通往第 ' + (RUN.floor + 1) + ' 层的阶梯被一道沉重的铁栅栏挡住了。</p>' +
+    '<p>栅栏前，盘踞着一个庞大的身影——<b>' + mb.name + '</b>。</p>' +
+    '<p class="sys">击败它才能继续深入。</p>',
+    [{label:'拔出武器迎战', cls:'danger', fn: () => startCombat(mbId)}]);
+}
+
+function bossIntro(){
+  setScene('<p>通道尽头是一扇巨大的骨门。门后是一整个洞窟，堆满了骨头。</p>' +
+    '<p>它坐在骨头堆成的王座上。王冠是某个人的头骨。它站了起来。</p>',
+    [{label:'拔出武器', cls:'danger', fn: () => startCombat('boss')}]);
+}
+function die(cause){
+  RUN.hp = 0;
+  const desc = '第 ' + RUN.floor + ' 层 · ' + cause;
+  META.deaths.push(desc);
+  META.runs++;
+  saveMeta();
+  RUN.combat = null;
+  setScene(
+    '<p class="em">你死了。</p>' +
+    '<p>' + desc + '</p>' +
+    '<p class="sys">死亡次数：' + META.deaths.length + '　最深：第 ' + maxDepth() + ' 层</p>',
+    [{label:'重新开始', cls:'primary', fn: () => { RUN = null; render(); }}]
+  );
+}
+function winGame(prefix){
+  META.wins++;
+  
+  let endingTitle = '普通结局：深潜者';
+  let endingText = '骸骨之王倒下了。你从它的王冠里取出一块温热的黑色石头，然后朝来路走去。你成为了这片地牢新的传说，但你知道，深渊还在呼唤。';
+  
+  if (RUN.inv.some(i => i.id === 'dragon_heart')) {
+    endingTitle = '真结局：屠龙者';
+    endingText = '你握着龙之心，地牢的阴影在你面前退散。你不仅击败了骸骨之王，更碾碎了深渊的意志。你带着巨龙的力量重返地表，世界将因你而颤抖。';
+  } else if (RUN.cls === 'warrior' && (hasTrait('warrior_unyielding') || RUN.subclass === 'fire_warrior')) {
+    endingTitle = '战士专属结局：剑之极意';
+    endingText = '你凭借不屈的意志粉碎了骸骨之王。王座崩塌时，无数英灵的剑鸣在你耳边回荡。你成为了名副其实的剑圣，余生都在寻找更强的对手。';
+  } else if (RUN.cls === 'rogue' && (hasTrait('rogue_fatal') || RUN.subclass === 'assassin')) {
+    endingTitle = '盗贼专属结局：暗影之主';
+    endingText = '骸骨之王甚至没看清你的动作，致命的毒刃就切断了它的命脉。你带着无尽的财宝悄然离去。地牢的阴影中，多了一个无人敢提及的幽灵。';
+  } else if (RUN.cls === 'scholar' && (hasTrait('scholar_omniscient') || RUN.subclass === 'elementalist')) {
+    endingTitle = '学者专属结局：真理守望者';
+    endingText = '你轻易看穿了骸骨之王的弱点，用纯粹的法术将其化为灰烬。你更在意的是地牢深处隐藏的远古知识。你留在了这里，继续探寻宇宙的终极真理。';
+  }
+
+  if (!META.endings) META.endings = [];
+  if (!META.endings.includes(endingTitle)) {
+    META.endings.push(endingTitle);
+  }
+  saveMeta();
+
+  setScene(
+    '<p class="good">' + endingTitle + '</p>' +
+    '<p>' + (prefix || '') + '</p>' +
+    '<p>' + endingText + '</p>' +
+    '<p class="sys">通关次数：' + META.wins + '</p>',
+    [{label:'重新开始', cls:'primary', fn: () => { RUN = null; render(); }}]
+  );
+}
+function maxDepth(){
+  let m = 0;
+  META.deaths.forEach(d => {
+    const n = parseInt(d.replace(/[^0-9].*/, '')) || 0;
+    if (n > m) m = n;
+  });
+  return m;
+}
+
+function setScene(html, opts){
+  if (!RUN) return;
+  RUN.scene = { html:html, opts:opts || [] };
+  render();
+}
+
+function render(){
+  if (!RUN){
+    renderTitle();
+    return;
+  }
+  renderStatus();
+  
+  const stage = document.getElementById('stage');
+  if (!stage) return;
+  
+  let h = '';
+  if (RUN.lastDice){
+    h += '<div class="dicebar' + (RUN.lastDice.bad ? ' bad' : '') + '">' + RUN.lastDice.html + '</div>';
+  }
+  h += '<div id="narrative">' + (RUN.scene ? RUN.scene.html : '') + '</div>';
+  h += '<div id="actions"></div>';
+  stage.innerHTML = h;
+  
+  const act = document.getElementById('actions');
+  if (!act) return;
+  
+  const opts = (RUN.scene && RUN.scene.opts) || [];
+  opts.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'opt ' + (o.cls || '');
+    b.innerHTML = o.label;
+    b.onclick = () => {
+      RUN.lastDice = null;
+      o.fn();
+    };
+    act.appendChild(b);
+  });
+  stage.scrollTop = 0;
+  
+  const elBag = document.getElementById('tabBag'); if (elBag) elBag.disabled = false;
+  const elLog = document.getElementById('tabLog'); if (elLog) elLog.disabled = false;
+  const elDex = document.getElementById('tabDex'); if (elDex) elDex.disabled = false;
+}
+
+function renderStatus(){
+  const sb = document.getElementById('statusbar');
+  if (!sb) return;
+  const dark = RUN.torches <= 0;
+  sb.className = dark ? 'darkmode' : '';
+  const cls = CLASSES.find(c => c.id === RUN.cls) || CLASSES[0];
+  const hpPct = Math.round(RUN.hp / RUN.maxHp * 100);
+  const lvlStr = 'Lv.' + (RUN.level||1) + ' (' + (RUN.exp||0) + '/' + (RUN.nextExp||20) + ')';
+  let subStr = '';
+  if (RUN.subclass) {
+    subStr = ' [' + getSubclassData().name + ']';
+  }
+  
+  let shieldHtml = '';
+  if (RUN.shield > 0) shieldHtml = '<span class="chip" style="color:#4f7a4a;">护盾 <b>' + RUN.shield + '</b></span>';
+  
+  sb.innerHTML =
+    '<span class="chip"><b>' + cls.name + subStr + '</b> ' + lvlStr + '</span>' +
+    '<span class="chip">生命 <span class="hpbar"><i style="width:' + hpPct + '%"></i></span> <b>' + RUN.hp + '/' + RUN.maxHp + '</b></span>' +
+    shieldHtml +
+    '<span class="chip">火把 <b>' + RUN.torches + '</b></span>' +
+    '<span class="chip">金币 <b>' + RUN.gold + '</b></span>' +
+    (RUN.luck ? '<span class="chip">幸运 <b>' + RUN.luck + '</b></span>' : '') +
+    '<span class="chip">第 <b>' + RUN.floor + '</b> 层</span>';
+}
+
+function renderTitle(){
+  const sb = document.getElementById('statusbar');
+  if (sb) sb.innerHTML = '<span class="chip"><b>深潜</b> · 文字地下城</span>';
+  
+  const elBag = document.getElementById('tabBag'); if (elBag) elBag.disabled = true;
+  const elLog = document.getElementById('tabLog'); if (elLog) elLog.disabled = false;
+  const elDex = document.getElementById('tabDex'); if (elDex) elDex.disabled = false;
+  
+  const stage = document.getElementById('stage');
+  if (!stage) return;
+  
+  let h = '<div class="title-wrap">';
+  h += '<h1>深潜</h1><div class="sub">DEEP DELVE</div>';
+  h += '<div class="blurb">你带着火把下潜五层。<br>每层都有不同的怪物和试炼。<br>寻找隐藏的裂缝，或者触发你的专属结局。<br>死了就死了——但你会记住。</div>';
+  h += '</div>';
+  h += '<div id="actions"></div>';
+  stage.innerHTML = h;
+  
+  const act = document.getElementById('actions');
+  if (!act) return;
+  
+  CLASSES.forEach(c => {
+    const b = document.createElement('button');
+    b.className = 'opt primary';
+    b.innerHTML = c.name + '<small>' + c.desc + '</small>';
+    b.onclick = () => newRun(c.id);
+    act.appendChild(b);
+  });
+  stage.scrollTop = 0;
+}
+
+function newRun(clsId){
+  const c = CLASSES.find(x => x.id === clsId) || CLASSES[0];
+  RUN = {
+    cls: clsId,
+    attrs: Object.assign({}, c.attrs),
+    hp: c.hp, maxHp: c.hp,
+    torches: c.torches, gold: c.gold, luck: 1,
+    inv: c.items.map(id => {
+      let obj = { id: id };
+      if (id === 'rogue_trick') obj.uses = 15;
+      return obj;
+    }),
+    traits: [],
+    floor: 1, step: 0,
+    potionMap: shuffle([0,1,2,3,4,5]),
+    identified: {},
+    atkBonus: 0,
+    nodes: [], scene: null, combat: null, lastDice: null,
+    log: [], 
+    level: 1, exp: 0, nextExp: 20,
+    shield: 0,
+    forgeCount: 0,
+    boughtEnchant: false,
+    bonusDef: 0,
+    subclass: null,
+    floorFarms: 0
+  };
+  RUN.inv.push({ id:'potion' + rnd(6) });
+  RUN.inv.push({ id:'potion' + rnd(6) });
+  goFloor();
+}
+function resumeRun(){
+  if (!RUN) return;
+  if (!RUN.scene){
+    if (RUN.step >= 10){ RUN.step = 0; RUN.floor++; }
+    if (RUN.floor > 5) return bossIntro();
+    RUN.nodes = rollNodes();
+    renderFloor();
+  } else {
+    render();
+  }
+}
+
+function closePanel(){
+  const ov = document.getElementById('overlay');
+  if (ov) ov.classList.add('hidden');
+  const pn = document.getElementById('panel');
+  if (pn) pn.innerHTML = '';
+}
+function openPanel(html){
+  const pn = document.getElementById('panel');
+  if (pn) pn.innerHTML = html;
+  const ov = document.getElementById('overlay');
+  if (ov) ov.classList.remove('hidden');
+}
+
+function openBagPanel(){
+  if (!RUN) return;
+  let h = '<h3>背包</h3>';
+  if (RUN.inv.length === 0) h += '<p class="sys">空空如也。</p>';
+  
+  const counts = {};
+  RUN.inv.forEach((it, i) => {
+    if (!counts[it.id]) counts[it.id] = { count: 0, originalIndex: i, item: it };
+    counts[it.id].count++;
+  });
+  
+  for (const id in counts) {
+    const c = counts[id];
+    const d = getItemDef(id);
+    const it = c.item;
+    
+    let btnLabel = '使用';
+    if (d.potion) {
+      const p = POTIONS[RUN.potionMap[d.colorIndex]];
+      const isFireOil = (p.name === '火油');
+      const isPoison = (p.name === '毒药');
+      
+      if (RUN.combat && isPoison) {
+        btnLabel = '投掷';
+      } else if (RUN.combat && isFireOil) {
+        btnLabel = '投掷';
+      } else if (RUN.identified[d.colorIndex]) {
+        btnLabel = isFireOil && !RUN.combat ? '不能喝' : '喝下';
+      } else {
+        btnLabel = RUN.combat ? '喝下' : '鉴定';
+      }
+    } else if (it.id === 'rogue_trick') {
+      if (!it.uses && it.uses !== 0) it.uses = 15; 
+      btnLabel = '搜刮 (' + it.uses + '次)';
+      if (it.uses <= 0) btnLabel = '次数耗尽';
+    }
+    
+    let nameStr = d.name;
+    if (c.count > 1) nameStr += ' x' + c.count;
+    
+    h += '<div class="row"><div class="info"><b>' + nameStr + '</b>' +
+      (d.potion && !RUN.identified[d.colorIndex] ? '<span class="tag">未鉴定</span>' : '') +
+      '<div class="sys">' + d.desc + '</div></div>';
+    if (d.type === 'use' || d.potion){
+      if (btnLabel === '不能喝' || btnLabel === '次数耗尽') {
+        h += '<button disabled>' + btnLabel + '</button>';
+      } else {
+        h += '<button data-use="' + c.originalIndex + '">' + btnLabel + '</button>';
+      }
+    }
+    h += '</div>';
+  }
+  
+  h += '<button class="bigbtn" id="closePanelBtn">关闭</button>';
+  openPanel(h);
+  
+  const btn = document.getElementById('closePanelBtn');
+  if (btn) btn.onclick = closePanel;
+  
+  const panel = document.getElementById('panel');
+  if (panel) {
+    panel.querySelectorAll('[data-use]').forEach(btn => {
+      btn.onclick = () => {
+        const idx = +btn.getAttribute('data-use');
+        useItemAt(idx);
+      };
+    });
+  }
+}
+
+function useItemAt(idx){
+  if (!RUN || !RUN.inv[idx]) return;
+  const it = RUN.inv[idx];
+  const d = getItemDef(it.id);
+  let msg = '';
+  let consumed = true;
+  
+  if (d.potion){
+    const ci = potionColorIndex(it.id);
+    const p = POTIONS[RUN.potionMap[ci]];
+    const isPoison = (p.name === '毒药');
+    const isFireOil = (p.name === '火油');
+    const isGoldSol = (p.name === '金溶液');
+    
+    if (RUN.combat && (isPoison || isFireOil)) {
+      let dmg = isPoison ? (10 + RUN.floor * 2) : (15 + RUN.floor * 2);
+      RUN.combat.hp -= dmg;
+      msg = '你把' + p.name + '泼向敌人，造成 ' + dmg + ' 点真实伤害！';
+      consumed = true;
+      if (RUN.combat.hp <= 0) {
+        closePanel();
+        RUN.inv.splice(idx, 1);
+        return killEnemy(msg);
+      }
+    } else if (!RUN.identified[ci] && !RUN.combat) {
+      RUN.identified[ci] = true;
+      consumed = false;
+      msg = '你仔细端详着这瓶' + POTION_COLORS[ci] + '色的药水，记下了它的特性和气味。<br><span class="good">已鉴定为：' + p.name + '。</span>';
+      openBagPanel(); 
+      return;
+    } else if (isGoldSol) {
+      RUN.hp -= 10;
+      RUN.bonusDef = (RUN.bonusDef||0) + 2;
+      msg = '你喝下了金溶液，剧痛传遍全身，但你的皮肤变得像金属一样坚硬。（生命 -10，防御永久 +2）';
+      if (RUN.hp <= 0) { closePanel(); RUN.inv.splice(idx, 1); return die('你被金溶液毒死了。'); }
+    } else {
+      RUN.identified[ci] = true;
+      applyEff(p.eff);
+      msg = p.text;
+      if (hasTrait('alchemist')) {
+        applyEff(p.eff);
+        msg += '（炼金师：效果翻倍！）';
+      }
+    }
+  } else if (d.type === 'use'){
+    if (it.id === 'scroll_identify') {
+      let unid = [];
+      RUN.inv.forEach((invIt) => {
+        if (isPotion(invIt.id) && !RUN.identified[potionColorIndex(invIt.id)]) unid.push(invIt);
+      });
+      if (unid.length > 0) {
+        const target = unid[0];
+        RUN.identified[potionColorIndex(target.id)] = true;
+        msg = '卷轴化为灰烬。你弄懂了' + POTION_COLORS[potionColorIndex(target.id)] + '色药水的用途。';
+      } else {
+        msg = '你身上没有未鉴定的药水。卷轴浪费了。';
+      }
+    } else if (it.id === 'bomb') {
+      if (RUN.combat) {
+        RUN.combat.hp -= 15;
+        msg = '炸弹轰然爆炸，对敌人造成了 15 点真实伤害！';
+        if (RUN.combat.hp <= 0) {
+          consumed = true;
+          closePanel();
+          RUN.inv.splice(idx, 1);
+          return killEnemy(msg);
+        }
+      } else {
+        msg = '这里没有敌人让你炸。';
+        consumed = false;
+      }
+    } else if (it.id === 'rogue_trick') {
+      if (!it.uses && it.uses !== 0) it.uses = 15;
+      if (RUN.combat) {
+        msg = '战斗中无法使用这项技艺。';
+        consumed = false;
+      } else if (it.uses <= 0) {
+        msg = '这份技艺的配方已经磨损殆尽了。';
+        consumed = false;
+      } else {
+        it.uses--;
+        const roll = d20();
+        const bonus = getMod(RUN.attrs.dex);
+        RUN.lastDice = {
+          bad: roll + bonus < 12,
+          html: '<span class="big">敏捷检定 · ' + (roll+bonus >= 12 ? '成功' : '失败') + '</span>' +
+            'd20(' + roll + ') +' + bonus + ' = ' + (roll+bonus) + ' vs DC 12'
+        };
+        if (roll + bonus >= 12) {
+          const rewards = [
+            {text: '你撬开了一个废弃的柜子，找到了几枚金币。', eff: {gold: 20}},
+            {text: '你在角落发现了一个别人遗漏的药瓶。', eff: {item: 'potion' + rnd(6)}},
+            {text: '你找到了一个急救包。', eff: {item: 'bandage'}}
+          ];
+          const r = pick(rewards);
+          msg = r.text;
+          applyEff(r.eff);
+        } else {
+          msg = '你搜刮了半天，不但什么也没找到，还弄出了一点动静。';
+          RUN.hp -= 2;
+        }
+        consumed = false; 
+      }
+    } else {
+      if (ITEMS[it.id] && ITEMS[it.id].eff) applyEff(ITEMS[it.id].eff);
+      msg = '你使用了' + d.name + '。';
+    }
+  }
+  
+  if (consumed) RUN.inv.splice(idx, 1);
+  closePanel();
+  if (RUN.hp <= 0) return die('你倒下了。');
+  
+  if (RUN.combat){
+    const cb = RUN.combat;
+    let dmg = Math.max(1, cb.atk[0] + rnd(cb.atk[1] - cb.atk[0] + 1) - getDef());
+    if (hasTrait('glass_cannon')) dmg *= 2;
+    RUN.hp -= dmg;
+    msg += '　它趁机攻击你，受到 ' + dmg + ' 点伤害。';
+    if (RUN.hp <= 0) return die('你倒下了。');
+    showCombat(msg);
+  } else {
+    const prevScene = RUN.scene;
+    setScene('<p>' + msg + '</p>', [{label:'继续', cls:'primary', fn: () => {
+      if (prevScene) {
+        RUN.scene = prevScene;
+        render();
+      } else {
+        renderFloor();
+      }
+    }}]);
+  }
+}
+
+function openLogPanel(){
+  let h = '<h3>状态与日志</h3>';
+  
+  h += '<h4>已获词条</h4>';
+  if (!RUN || RUN.traits.length === 0) {
+    h += '<p class="sys">暂无词条。</p>';
+  } else {
+    h += '<div class="grid-container" id="traits-grid">';
+    RUN.traits.forEach(t => {
+      const d = TRAITS[t];
+      if (d) {
+        const isNeg = ['weak','slow','blind','bad_luck','cursed','wound','broken_pocket','gluttony','arrogance'].includes(t);
+        const color = isNeg ? 'color:#8a4436;' : (t.includes('pact')||t.includes('cannon')||t.includes('gambler')||t.includes('paranoia')?'color:#c09020;':'');
+        h += `<div class="grid-item" data-title="${d.name}" data-desc="${d.desc}">
+                <b style="${color}">${d.name}</b>
+                <small>${isNeg?'负面':'增益'}</small>
+              </div>`;
+      }
+    });
+    h += '</div>';
+  }
+  
+  h += '<h4 style="margin-top:24px;">探索日志</h4>';
+  let logs = [];
+  if (RUN && RUN.log) logs = RUN.log;
+  
+  if (logs.length === 0) {
+    h += '<p class="sys">当前局暂无记录。</p>';
+  } else {
+    logs.slice(-20).forEach(l => { h += '<div class="row"><div class="info sys">' + l + '</div></div>'; });
+  }
+  
+  h += '<button class="bigbtn" id="closePanelBtn">关闭</button>';
+  openPanel(h);
+  
+  const panel = document.getElementById('panel');
+  if (panel) {
+    panel.querySelectorAll('.grid-item').forEach(el => {
+      el.onclick = () => {
+        showModal(el.getAttribute('data-title'), el.getAttribute('data-desc'));
+      };
+    });
+  }
+  
+  const btn = document.getElementById('closePanelBtn');
+  if (btn) btn.onclick = closePanel;
+}
+
+function openDexPanel(){
+  let h = '<h3>图鉴收集</h3>';
+  
+  h += '<h4>怪物图鉴</h4>';
+  const seen = Object.keys(META.bestiary);
+  if (!seen.length) {
+    h += '<p class="sys">还没有见过任何东西。</p>';
+  } else {
+    h += '<div class="grid-container" id="dex-grid">';
+    seen.forEach(k => {
+      const e = ENEMIES[k];
+      if (!e) return;
+      h += `<div class="grid-item" data-title="${e.name}" data-desc="${e.desc}\n\n情报：${e.info}">
+              <b>${e.name}</b>
+              <small>点击查看</small>
+            </div>`;
+    });
+    h += '</div>';
+  }
+  
+  h += '<h4 style="margin-top:24px;">结局收集（' + (META.endings ? META.endings.length : 0) + '）</h4>';
+  if (!META.endings || !META.endings.length) {
+    h += '<p class="sys">还没有达成任何结局。</p>';
+  } else {
+    META.endings.forEach(ed => {
+      h += '<div class="row"><div class="info"><b style="color:#4f7a4a;">' + ed + '</b></div></div>';
+    });
+  }
+
+  h += '<h4 style="margin-top:24px;">死法收集（' + META.deaths.length + '）</h4>';
+  if (!META.deaths.length) h += '<p class="sys">还没有死过。</p>';
+  META.deaths.slice(-10).forEach(d => {
+    h += '<div class="row"><div class="info sys">' + d + '</div></div>';
+  });
+  
+  h += '<button class="bigbtn" id="closePanelBtn">关闭</button>';
+  openPanel(h);
+  
+  const panel = document.getElementById('panel');
+  if (panel) {
+    panel.querySelectorAll('.grid-item').forEach(el => {
+      el.onclick = () => {
+        showModal(el.getAttribute('data-title'), el.getAttribute('data-desc'));
+      };
+    });
+  }
+  
+  const btn = document.getElementById('closePanelBtn');
+  if (btn) btn.onclick = closePanel;
+}
+
+function openSavePanel(){
+  let h = '<h3>存档码</h3>';
+  h += '<p class="sys">生成一段存档码，复制保存后可在其他设备导入，继续当前进度。</p>';
+  h += '<textarea id="saveOut" readonly>点击下方按钮生成</textarea>';
+  h += '<button class="bigbtn" id="genBtn">生成存档码</button>';
+  h += '<h4>导入存档码</h4>';
+  h += '<textarea id="saveIn" placeholder="粘贴存档码…"></textarea>';
+  h += '<button class="bigbtn warn" id="loadBtn">导入</button>';
+  h += '<button class="bigbtn" id="closePanelBtn">关闭</button>';
+  openPanel(h);
+  
+  const btnC = document.getElementById('closePanelBtn');
+  if (btnC) btnC.onclick = closePanel;
+  
+  const btnG = document.getElementById('genBtn');
+  if (btnG) btnG.onclick = () => {
+    const code = exportCode();
+    const so = document.getElementById('saveOut');
+    if (so) so.value = code;
+    try{ navigator.clipboard.writeText(code); }catch(e){}
+    btnG.textContent = '已生成并尝试复制';
+  };
+  
+  const btnL = document.getElementById('loadBtn');
+  if (btnL) btnL.onclick = () => {
+    try{
+      const si = document.getElementById('saveIn');
+      importCode(si ? si.value : '');
+      closePanel();
+    }catch(e){
+      alert('导入失败：' + e.message);
+    }
+  };
+}
+
+// 初始化
+function init(){
+  const tabBag = document.getElementById('tabBag'); if (tabBag) tabBag.onclick = openBagPanel;
+  const tabLog = document.getElementById('tabLog'); if (tabLog) tabLog.onclick = openLogPanel;
+  const tabDex = document.getElementById('tabDex'); if (tabDex) tabDex.onclick = openDexPanel;
+  const tabSave = document.getElementById('tabSave'); if (tabSave) tabSave.onclick = openSavePanel;
+  
+  const overlay = document.getElementById('overlay'); 
+  if (overlay) {
+    overlay.onclick = (e) => { if (e.target.id === 'overlay') closePanel(); };
+  }
+
+  loadMeta();
+  render();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+})();
+</script>
+</body>
+</html>
